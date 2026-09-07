@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#3178ff">
+  <title>Room Rescue AI</title>
+  <style>
+    :root { color-scheme: light dark; --accent:#3178ff; --border:#8a8a8a55; --muted:#777; }
+    * { box-sizing:border-box; }
+    body { margin:0; font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; background:Canvas; color:CanvasText; }
+    main { max-width:900px; margin:auto; padding:20px; }
+    h1 { margin:0 0 4px; font-size:clamp(28px,6vw,46px); }
+    .sub { color:var(--muted); margin-bottom:20px; }
+    .grid { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+    .card { border:1px solid var(--border); border-radius:18px; padding:16px; }
+    .upload { min-height:230px; border:2px dashed var(--border); border-radius:16px; display:grid; place-items:center; text-align:center; padding:18px; cursor:pointer; }
+    input[type=file] { display:none; }
+    select,button { width:100%; min-height:48px; border-radius:12px; border:1px solid var(--border); padding:10px 12px; font:inherit; background:Canvas; color:CanvasText; }
+    button { background:var(--accent); color:white; border:0; font-weight:700; cursor:pointer; }
+    button:disabled { opacity:.5; cursor:not-allowed; }
+    label { display:block; font-weight:650; margin:12px 0 6px; }
+    #preview { width:100%; max-height:350px; object-fit:cover; border-radius:14px; margin-top:12px; display:none; }
+    .status { margin-top:14px; padding:12px; border-radius:12px; border:1px solid var(--border); display:none; }
+    .task { border:1px solid var(--border); border-radius:15px; padding:14px; margin-top:10px; }
+    .task-head { display:flex; gap:10px; align-items:flex-start; }
+    .task-head input { margin-top:5px; transform:scale(1.25); }
+    .task-title { font-weight:750; }
+    .meta { margin-top:6px; color:var(--muted); font-size:.92rem; display:flex; flex-wrap:wrap; gap:7px; }
+    .pill { border:1px solid var(--border); border-radius:999px; padding:3px 8px; }
+    .reason { margin:9px 0 0 28px; font-size:.95rem; }
+    .supplies { margin:7px 0 0 28px; color:var(--muted); font-size:.9rem; }
+    .done .task-title { text-decoration:line-through; opacity:.6; }
+    .progress { height:8px; background:var(--border); border-radius:999px; overflow:hidden; margin:12px 0; }
+    .progress > div { height:100%; width:0; background:var(--accent); transition:width .2s; }
+    .caution { padding:10px 12px; border:1px solid var(--border); border-radius:12px; margin-top:8px; }
+    @media(max-width:700px){ .grid{grid-template-columns:1fr;} main{padding:14px;} }
+  </style>
+</head>
+<body>
+<main>
+  <h1>Room Rescue AI</h1>
+  <div class="sub">Photograph a room. Get a prioritized clean • repair • organize • safety plan.</div>
+
+  <div class="grid">
+    <section class="card">
+      <strong>1. Add a room photo</strong>
+      <label class="upload" for="photo">
+        <div>
+          <div style="font-size:44px">📸</div>
+          <div id="uploadLabel">Take a photo or choose one</div>
+        </div>
+      </label>
+      <input id="photo" type="file" accept="image/*" capture="environment">
+      <img id="preview" alt="Selected room preview">
+    </section>
+
+    <section class="card">
+      <strong>2. Analyze it</strong>
+      <label for="room">Room hint</label>
+      <select id="room">
+        <option>Auto-detect</option><option>Living room</option><option>Bedroom</option>
+        <option>Kitchen</option><option>Bathroom</option><option>Garage</option>
+        <option>Laundry room</option><option>Office</option><option>Other</option>
+      </select>
+      <label for="budget">First-session time</label>
+      <select id="budget">
+        <option value="15">15 minutes</option>
+        <option value="30" selected>30 minutes</option>
+        <option value="60">1 hour</option>
+        <option value="120">2 hours</option>
+      </select>
+      <div style="height:14px"></div>
+      <button id="analyze" disabled>Analyze room with AI</button>
+      <div id="status" class="status" aria-live="polite"></div>
+    </section>
+  </div>
+
+  <section id="results" class="card" style="margin-top:16px;display:none">
+    <h2 id="roomTitle" style="margin-top:0"></h2>
+    <p id="summary"></p>
+    <div id="progressText"></div>
+    <div class="progress"><div id="progressBar"></div></div>
+    <div id="cautions"></div>
+    <div id="tasks"></div>
+  </section>
+</main>
+
+<script>
+const photo = document.getElementById('photo');
+const preview = document.getElementById('preview');
+const analyze = document.getElementById('analyze');
+const status = document.getElementById('status');
+const results = document.getElementById('results');
+const tasksEl = document.getElementById('tasks');
+let currentTasks = [];
+
+photo.addEventListener('change', () => {
+  const f = photo.files?.[0];
+  if (!f) return;
+  preview.src = URL.createObjectURL(f);
+  preview.style.display = 'block';
+  document.getElementById('uploadLabel').textContent = f.name;
+  analyze.disabled = false;
+});
+
+function esc(s) {
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));
+}
+
+function updateProgress() {
+  const complete = currentTasks.filter(t => t.done).length;
+  const pct = currentTasks.length ? Math.round(complete / currentTasks.length * 100) : 0;
+  document.getElementById('progressText').textContent = `${complete}/${currentTasks.length} tasks complete • ${pct}%`;
+  document.getElementById('progressBar').style.width = pct + '%';
+}
+
+function render(data) {
+  document.getElementById('roomTitle').textContent = data.room_type + ' plan';
+  document.getElementById('summary').textContent = `${data.summary} Estimated total: ${data.estimated_total_minutes} minutes.`;
+  const cautions = document.getElementById('cautions');
+  cautions.innerHTML = data.cautions?.length ? '<h3>Cautions</h3>' + data.cautions.map(x => `<div class="caution">⚠️ ${esc(x)}</div>`).join('') : '';
+  currentTasks = data.tasks.map(t => ({...t, done:false}));
+  tasksEl.innerHTML = '';
+  currentTasks.forEach((t, i) => {
+    const el = document.createElement('div');
+    el.className = 'task';
+    el.innerHTML = `<div class="task-head"><input type="checkbox" aria-label="Mark task complete"><div><div class="task-title">${esc(t.title)}</div><div class="meta"><span class="pill">${esc(t.priority)} priority</span><span class="pill">${esc(t.category)}</span><span class="pill">~${t.minutes} min</span><span class="pill">${esc(t.diy_level)} DIY</span><span class="pill">${esc(t.confidence)} confidence</span></div></div></div><div class="reason">${esc(t.reason)}</div>${t.supplies?.length ? `<div class="supplies">Supplies: ${t.supplies.map(esc).join(', ')}</div>` : ''}`;
+    const cb = el.querySelector('input');
+    cb.addEventListener('change', () => { currentTasks[i].done = cb.checked; el.classList.toggle('done', cb.checked); updateProgress(); });
+    tasksEl.appendChild(el);
+  });
+  results.style.display = 'block';
+  updateProgress();
+  results.scrollIntoView({behavior:'smooth', block:'start'});
+}
+
+analyze.addEventListener('click', async () => {
+  const f = photo.files?.[0];
+  if (!f) return;
+  analyze.disabled = true;
+  analyze.textContent = 'Analyzing…';
+  status.style.display = 'block';
+  status.textContent = 'AI is inspecting the visible room condition and building your task list.';
+  const body = new FormData();
+  body.append('image', f);
+  body.append('room_hint', document.getElementById('room').value);
+  body.append('time_budget', document.getElementById('budget').value);
+  try {
+    const res = await fetch('/api/analyze', {method:'POST', body});
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || 'Analysis failed.');
+    status.style.display = 'none';
+    render(data);
+  } catch (e) {
+    status.style.display = 'block';
+    status.textContent = e.message;
+  } finally {
+    analyze.disabled = false;
+    analyze.textContent = 'Analyze room with AI';
+  }
+});
+</script>
+</body>
+</html>
