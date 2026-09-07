@@ -3,73 +3,80 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-  <meta name="theme-color" content="#3178ff">
   <title>Room Rescue AI</title>
   <style>
-    :root { color-scheme: light dark; --accent:#3178ff; --border:#8a8a8a55; --muted:#777; }
+    :root {
+      color-scheme: light dark;
+      --accent:#3178ff;
+      --accent-soft:#3178ff22;
+      --border:#8a8a8a55;
+      --muted:#777;
+      --success:#1f9d55;
+      --warning:#b7791f;
+      --danger:#d64545;
+    }
     * { box-sizing:border-box; }
     body { margin:0; font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; background:Canvas; color:CanvasText; }
-    main { max-width:900px; margin:auto; padding:20px; }
+    main { max-width:980px; margin:auto; padding:20px; }
     h1 { margin:0 0 4px; font-size:clamp(28px,6vw,46px); }
-    .sub { color:var(--muted); margin-bottom:20px; }
+    h2, h3 { margin:0 0 10px; }
+    .sub { color:var(--muted); margin-bottom:18px; }
     .grid { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
-    .card { border:1px solid var(--border); border-radius:18px; padding:16px; }
-    .upload { min-height:230px; border:2px dashed var(--border); border-radius:16px; display:grid; place-items:center; text-align:center; padding:18px; cursor:pointer; }
+    .card { border:1px solid var(--border); border-radius:18px; padding:16px; background:color-mix(in srgb, Canvas 92%, transparent); }
+    .upload { min-height:210px; border:2px dashed var(--border); border-radius:16px; display:grid; place-items:center; text-align:center; padding:18px; cursor:pointer; }
     input[type=file] { display:none; }
-    select,button { width:100%; min-height:48px; border-radius:12px; border:1px solid var(--border); padding:10px 12px; font:inherit; background:Canvas; color:CanvasText; }
+    select, button { width:100%; min-height:48px; border-radius:12px; border:1px solid var(--border); padding:10px 12px; font:inherit; background:Canvas; color:CanvasText; }
     button { background:var(--accent); color:white; border:0; font-weight:700; cursor:pointer; }
-    button:disabled { opacity:.5; cursor:not-allowed; }
-    label { display:block; font-weight:650; margin:12px 0 6px; }
-    #preview { width:100%; max-height:350px; object-fit:cover; border-radius:14px; margin-top:12px; display:none; }
+    button:disabled { opacity:.55; cursor:not-allowed; }
+    label.field { display:block; font-weight:650; margin:12px 0 6px; }
+    .preview { width:100%; max-height:340px; object-fit:cover; border-radius:14px; margin-top:12px; display:none; }
     .status { margin-top:14px; padding:12px; border-radius:12px; border:1px solid var(--border); display:none; }
+    .kpis { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-top:14px; }
+    .kpi { border:1px solid var(--border); border-radius:16px; padding:14px; text-align:center; }
+    .kpi .num { font-size:1.6rem; font-weight:800; }
+    .progress { height:10px; background:var(--border); border-radius:999px; overflow:hidden; margin:12px 0; }
+    .progress > div { height:100%; width:0; background:var(--accent); transition:width .2s; }
     .task { border:1px solid var(--border); border-radius:15px; padding:14px; margin-top:10px; }
     .task-head { display:flex; gap:10px; align-items:flex-start; }
-    .task-head input { margin-top:5px; transform:scale(1.25); }
+    .task-head input { margin-top:5px; transform:scale(1.2); }
     .task-title { font-weight:750; }
     .meta { margin-top:6px; color:var(--muted); font-size:.92rem; display:flex; flex-wrap:wrap; gap:7px; }
     .pill { border:1px solid var(--border); border-radius:999px; padding:3px 8px; }
+    .pill.status-completed { border-color:color-mix(in srgb, var(--success) 60%, var(--border)); color:var(--success); }
+    .pill.status-partial { border-color:color-mix(in srgb, var(--warning) 60%, var(--border)); color:var(--warning); }
+    .pill.status-notdone, .pill.status-needphoto { border-color:color-mix(in srgb, var(--danger) 60%, var(--border)); color:var(--danger); }
     .reason { margin:9px 0 0 28px; font-size:.95rem; }
     .supplies { margin:7px 0 0 28px; color:var(--muted); font-size:.9rem; }
     .done .task-title { text-decoration:line-through; opacity:.6; }
-    .progress { height:8px; background:var(--border); border-radius:999px; overflow:hidden; margin:12px 0; }
-    .progress > div { height:100%; width:0; background:var(--accent); transition:width .2s; }
-    .caution { padding:10px 12px; border:1px solid var(--border); border-radius:12px; margin-top:8px; }
-    @media(max-width:700px){ .grid{grid-template-columns:1fr;} main{padding:14px;} }
+    .compare-block { margin-top:12px; padding:10px 12px; border-radius:12px; background:var(--accent-soft); }
+    .compare-evidence, .compare-next { margin-top:6px; font-size:.92rem; }
+    .list { margin:8px 0 0 18px; padding:0; }
+    .list li { margin:6px 0; }
+    .banner { border-radius:16px; padding:14px; border:1px solid var(--border); margin-top:12px; }
+    .banner.success { border-color:color-mix(in srgb, var(--success) 50%, var(--border)); }
+    .banner.warn { border-color:color-mix(in srgb, var(--warning) 50%, var(--border)); }
+    @media(max-width:800px){ .grid{grid-template-columns:1fr;} .kpis{grid-template-columns:repeat(2,1fr);} main{padding:14px;} }
   </style>
 </head>
 <body>
 <main>
   <h1>Room Rescue AI</h1>
-  <div class="sub">Photograph a room. Get a prioritized clean • repair • organize • safety plan.</div>
+  <div class="sub">Take a before photo, get a plan, then upload an after photo to measure progress and keep going until the room is fully done.</div>
 
   <div class="grid">
     <section class="card">
-      <strong>1. Add a room photo</strong>
-      <label class="upload" for="photo">
-        <div>
-          <div style="font-size:44px">📸</div>
-          <div id="uploadLabel">Take a photo or choose one</div>
-        </div>
-      </label>
-      <input id="photo" type="file" accept="image/*" capture="environment">
-      <img id="preview" alt="Selected room preview">
+      <h2>1. Before photo</h2>
+      <label class="upload" for="beforePhoto"><div><div style="font-size:44px">📸</div><div id="beforeUploadLabel">Take a photo or choose one</div></div></label>
+      <input id="beforePhoto" type="file" accept="image/*" capture="environment">
+      <img id="beforePreview" class="preview" alt="Before room preview">
     </section>
 
     <section class="card">
-      <strong>2. Analyze it</strong>
-      <label for="room">Room hint</label>
-      <select id="room">
-        <option>Auto-detect</option><option>Living room</option><option>Bedroom</option>
-        <option>Kitchen</option><option>Bathroom</option><option>Garage</option>
-        <option>Laundry room</option><option>Office</option><option>Other</option>
-      </select>
-      <label for="budget">First-session time</label>
-      <select id="budget">
-        <option value="15">15 minutes</option>
-        <option value="30" selected>30 minutes</option>
-        <option value="60">1 hour</option>
-        <option value="120">2 hours</option>
-      </select>
+      <h2>2. Build the room plan</h2>
+      <label class="field" for="room">Room hint</label>
+      <select id="room"><option>Auto-detect</option><option>Living room</option><option>Bedroom</option><option>Kitchen</option><option>Bathroom</option><option>Garage</option><option>Laundry room</option><option>Office</option><option>Other</option></select>
+      <label class="field" for="budget">First-session time</label>
+      <select id="budget"><option value="15">15 minutes</option><option value="30" selected>30 minutes</option><option value="60">1 hour</option><option value="120">2 hours</option></select>
       <div style="height:14px"></div>
       <button id="analyze" disabled>Analyze room with AI</button>
       <div id="status" class="status" aria-live="polite"></div>
@@ -77,88 +84,137 @@
   </div>
 
   <section id="results" class="card" style="margin-top:16px;display:none">
-    <h2 id="roomTitle" style="margin-top:0"></h2>
+    <h2 id="roomTitle"></h2>
     <p id="summary"></p>
-    <div id="progressText"></div>
-    <div class="progress"><div id="progressBar"></div></div>
+    <div id="manualProgressText"></div>
+    <div class="progress"><div id="manualProgressBar"></div></div>
     <div id="cautions"></div>
     <div id="tasks"></div>
+  </section>
+
+  <section id="afterSection" class="card" style="margin-top:16px;display:none">
+    <div class="grid">
+      <div>
+        <h2>3. After photo</h2>
+        <div class="sub" style="margin-bottom:10px">After you clean or repair the room, upload a new photo from a similar angle.</div>
+        <label class="upload" for="afterPhoto"><div><div style="font-size:44px">✅</div><div id="afterUploadLabel">Choose the after photo</div></div></label>
+        <input id="afterPhoto" type="file" accept="image/*" capture="environment">
+        <img id="afterPreview" class="preview" alt="After room preview">
+      </div>
+      <div>
+        <h2>4. Compare progress</h2>
+        <div class="sub" style="margin-bottom:10px">The AI will compare before vs after, score completion, praise what improved, and tell you what still needs work.</div>
+        <button id="compare" disabled>Compare before and after</button>
+        <div id="compareStatus" class="status" aria-live="polite"></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="comparison" class="card" style="margin-top:16px;display:none">
+    <h2>Room progress report</h2>
+    <p id="compareSummary"></p>
+    <div class="kpis">
+      <div class="kpi"><div class="num" id="kpiPercent">0%</div><div>Completed</div></div>
+      <div class="kpi"><div class="num" id="kpiDone">0</div><div>Tasks done</div></div>
+      <div class="kpi"><div class="num" id="kpiRemaining">0</div><div>Remaining</div></div>
+      <div class="kpi"><div class="num" id="kpiTotal">0</div><div>Total tasks</div></div>
+    </div>
+    <div class="progress"><div id="compareProgressBar"></div></div>
+    <div id="encouragement" class="banner success"></div>
+    <div class="grid" style="margin-top:14px"><div><h3>Visible successes</h3><ul id="successes" class="list"></ul></div><div><h3>Still needs work</h3><ul id="failures" class="list"></ul></div></div>
+    <div id="nextAction" class="banner warn"></div>
+    <div id="remainingTasksWrap" style="margin-top:14px"></div>
   </section>
 </main>
 
 <script>
-const photo = document.getElementById('photo');
-const preview = document.getElementById('preview');
-const analyze = document.getElementById('analyze');
-const status = document.getElementById('status');
+const beforePhoto = document.getElementById('beforePhoto');
+const beforePreview = document.getElementById('beforePreview');
+const afterPhoto = document.getElementById('afterPhoto');
+const afterPreview = document.getElementById('afterPreview');
+const analyzeBtn = document.getElementById('analyze');
+const compareBtn = document.getElementById('compare');
+const statusEl = document.getElementById('status');
+const compareStatusEl = document.getElementById('compareStatus');
 const results = document.getElementById('results');
+const afterSection = document.getElementById('afterSection');
+const comparison = document.getElementById('comparison');
 const tasksEl = document.getElementById('tasks');
-let currentTasks = [];
+let analysisData = null;
+let taskState = [];
 
-photo.addEventListener('change', () => {
-  const f = photo.files?.[0];
-  if (!f) return;
-  preview.src = URL.createObjectURL(f);
-  preview.style.display = 'block';
-  document.getElementById('uploadLabel').textContent = f.name;
-  analyze.disabled = false;
-});
+function esc(s) { return String(s).replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;' }[c])); }
+function setStatus(el, text, show=true) { el.textContent = text; el.style.display = show ? 'block' : 'none'; }
+function previewFile(input, img, labelId) { const f = input.files?.[0]; if (!f) return; img.src = URL.createObjectURL(f); img.style.display = 'block'; document.getElementById(labelId).textContent = f.name; }
 
-function esc(s) {
-  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));
+beforePhoto.addEventListener('change', () => { previewFile(beforePhoto, beforePreview, 'beforeUploadLabel'); analyzeBtn.disabled = !beforePhoto.files?.[0]; });
+afterPhoto.addEventListener('change', () => { previewFile(afterPhoto, afterPreview, 'afterUploadLabel'); compareBtn.disabled = !(afterPhoto.files?.[0] && analysisData && beforePhoto.files?.[0]); });
+
+function renderManualProgress() {
+  const complete = taskState.filter(t => t.done).length;
+  const pct = taskState.length ? Math.round((complete / taskState.length) * 100) : 0;
+  document.getElementById('manualProgressText').textContent = `${complete}/${taskState.length} manually checked off • ${pct}%`;
+  document.getElementById('manualProgressBar').style.width = pct + '%';
 }
 
-function updateProgress() {
-  const complete = currentTasks.filter(t => t.done).length;
-  const pct = currentTasks.length ? Math.round(complete / currentTasks.length * 100) : 0;
-  document.getElementById('progressText').textContent = `${complete}/${currentTasks.length} tasks complete • ${pct}%`;
-  document.getElementById('progressBar').style.width = pct + '%';
+function statusClass(status) {
+  if (status === 'Completed') return 'status-completed';
+  if (status === 'Partially Done') return 'status-partial';
+  if (status === 'Need Better Photo') return 'status-needphoto';
+  return 'status-notdone';
 }
 
-function render(data) {
-  document.getElementById('roomTitle').textContent = data.room_type + ' plan';
-  document.getElementById('summary').textContent = `${data.summary} Estimated total: ${data.estimated_total_minutes} minutes.`;
-  const cautions = document.getElementById('cautions');
-  cautions.innerHTML = data.cautions?.length ? '<h3>Cautions</h3>' + data.cautions.map(x => `<div class="caution">⚠️ ${esc(x)}</div>`).join('') : '';
-  currentTasks = data.tasks.map(t => ({...t, done:false}));
+function renderTasks() {
   tasksEl.innerHTML = '';
-  currentTasks.forEach((t, i) => {
+  taskState.forEach((t, i) => {
     const el = document.createElement('div');
-    el.className = 'task';
-    el.innerHTML = `<div class="task-head"><input type="checkbox" aria-label="Mark task complete"><div><div class="task-title">${esc(t.title)}</div><div class="meta"><span class="pill">${esc(t.priority)} priority</span><span class="pill">${esc(t.category)}</span><span class="pill">~${t.minutes} min</span><span class="pill">${esc(t.diy_level)} DIY</span><span class="pill">${esc(t.confidence)} confidence</span></div></div></div><div class="reason">${esc(t.reason)}</div>${t.supplies?.length ? `<div class="supplies">Supplies: ${t.supplies.map(esc).join(', ')}</div>` : ''}`;
+    el.className = 'task' + (t.done ? ' done' : '');
+    const compareBlock = t.compare ? `<div class="compare-block"><div><strong>AI progress check:</strong> <span class="pill ${statusClass(t.compare.status)}">${esc(t.compare.status)}</span></div><div class="compare-evidence"><strong>What the photo shows:</strong> ${esc(t.compare.evidence)}</div><div class="compare-next"><strong>Next step:</strong> ${esc(t.compare.next_step)}</div></div>` : '';
+    el.innerHTML = `<div class="task-head"><input type="checkbox" aria-label="Mark task complete" ${t.done ? 'checked' : ''}><div><div class="task-title">${esc(t.title)}</div><div class="meta"><span class="pill">${esc(t.priority)} priority</span><span class="pill">${esc(t.category)}</span><span class="pill">~${t.minutes} min</span><span class="pill">${esc(t.diy_level)} DIY</span><span class="pill">${esc(t.confidence)} confidence</span></div></div></div><div class="reason">${esc(t.reason)}</div>${t.supplies?.length ? `<div class="supplies">Supplies: ${t.supplies.map(esc).join(', ')}</div>` : ''}${compareBlock}`;
     const cb = el.querySelector('input');
-    cb.addEventListener('change', () => { currentTasks[i].done = cb.checked; el.classList.toggle('done', cb.checked); updateProgress(); });
+    cb.addEventListener('change', () => { taskState[i].done = cb.checked; renderTasks(); });
     tasksEl.appendChild(el);
   });
-  results.style.display = 'block';
-  updateProgress();
-  results.scrollIntoView({behavior:'smooth', block:'start'});
+  renderManualProgress();
 }
 
-analyze.addEventListener('click', async () => {
-  const f = photo.files?.[0];
-  if (!f) return;
-  analyze.disabled = true;
-  analyze.textContent = 'Analyzing…';
-  status.style.display = 'block';
-  status.textContent = 'AI is inspecting the visible room condition and building your task list.';
-  const body = new FormData();
-  body.append('image', f);
-  body.append('room_hint', document.getElementById('room').value);
-  body.append('time_budget', document.getElementById('budget').value);
+analyzeBtn.addEventListener('click', async () => {
+  const f = beforePhoto.files?.[0]; if (!f) return;
+  analyzeBtn.disabled = true; setStatus(statusEl, 'AI is inspecting the visible room and creating your task list.');
+  const body = new FormData(); body.append('image', f); body.append('room_hint', document.getElementById('room').value); body.append('time_budget', document.getElementById('budget').value);
   try {
-    const res = await fetch('/api/analyze', {method:'POST', body});
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.detail || 'Analysis failed.');
-    status.style.display = 'none';
-    render(data);
-  } catch (e) {
-    status.style.display = 'block';
-    status.textContent = e.message;
-  } finally {
-    analyze.disabled = false;
-    analyze.textContent = 'Analyze room with AI';
-  }
+    const res = await fetch('/api/analyze', { method:'POST', body });
+    const data = await res.json(); if (!res.ok) throw new Error(data.detail || 'Analysis failed.');
+    analysisData = data; taskState = data.tasks.map(t => ({ ...t, done:false, compare:null }));
+    document.getElementById('roomTitle').textContent = `${data.room_type} plan`;
+    document.getElementById('summary').textContent = `${data.summary} Estimated total: ${data.estimated_total_minutes} minutes.`;
+    document.getElementById('cautions').innerHTML = data.cautions?.length ? '<h3>Cautions</h3><ul class="list">' + data.cautions.map(x => `<li>⚠️ ${esc(x)}</li>`).join('') + '</ul>' : '';
+    renderTasks(); results.style.display = 'block'; afterSection.style.display = 'block'; compareBtn.disabled = !afterPhoto.files?.[0]; comparison.style.display = 'none'; setStatus(statusEl, '', false); results.scrollIntoView({ behavior:'smooth', block:'start' });
+  } catch (e) { setStatus(statusEl, e.message); } finally { analyzeBtn.disabled = false; }
+});
+
+compareBtn.addEventListener('click', async () => {
+  const beforeFile = beforePhoto.files?.[0]; const afterFile = afterPhoto.files?.[0]; if (!beforeFile || !afterFile || !analysisData) return;
+  compareBtn.disabled = true; setStatus(compareStatusEl, 'Comparing the before and after photos now.');
+  const body = new FormData(); body.append('before_image', beforeFile); body.append('after_image', afterFile); body.append('room_type', analysisData.room_type || 'room'); body.append('tasks_json', JSON.stringify(analysisData.tasks));
+  try {
+    const res = await fetch('/api/compare', { method:'POST', body }); const data = await res.json(); if (!res.ok) throw new Error(data.detail || 'Comparison failed.');
+    const map = new Map(data.task_results.map(t => [t.title.trim().toLowerCase(), t]));
+    taskState = taskState.map(task => { const found = map.get(task.title.trim().toLowerCase()) || null; return { ...task, done: found ? found.status === 'Completed' : task.done, compare: found }; });
+    renderTasks();
+    document.getElementById('compareSummary').textContent = data.summary;
+    document.getElementById('kpiPercent').textContent = `${data.completed_percentage}%`;
+    document.getElementById('kpiDone').textContent = data.completed_tasks;
+    document.getElementById('kpiRemaining').textContent = data.total_tasks - data.completed_tasks;
+    document.getElementById('kpiTotal').textContent = data.total_tasks;
+    document.getElementById('compareProgressBar').style.width = data.completed_percentage + '%';
+    document.getElementById('encouragement').textContent = data.encouragement;
+    document.getElementById('successes').innerHTML = (data.successes?.length ? data.successes : ['Some progress is visible.']).map(x => `<li>${esc(x)}</li>`).join('');
+    document.getElementById('failures').innerHTML = (data.failures?.length ? data.failures : ['Nothing important appears unfinished.']).map(x => `<li>${esc(x)}</li>`).join('');
+    document.getElementById('nextAction').textContent = data.next_action;
+    document.getElementById('remainingTasksWrap').innerHTML = data.remaining_tasks?.length ? `<h3>Remaining tasks to finish before the next photo</h3><ul class="list">${data.remaining_tasks.map(x => `<li>${esc(x)}</li>`).join('')}</ul>` : '<h3>Remaining tasks to finish before the next photo</h3><div class="banner success">Nothing remaining. This room appears complete.</div>';
+    comparison.style.display = 'block'; setStatus(compareStatusEl, '', false); comparison.scrollIntoView({ behavior:'smooth', block:'start' });
+  } catch (e) { setStatus(compareStatusEl, e.message); } finally { compareBtn.disabled = false; }
 });
 </script>
 </body>
