@@ -1,25 +1,188 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#111418"><title>Room Rescue</title>
-<style>
-:root{--bg:#f4f1eb;--card:#fff;--soft:#f8f6f1;--ink:#171a1f;--muted:#70757d;--line:#ddd9d1;--accent:#ef6a3a;--green:#2e7657;--shadow:0 10px 28px #2221}*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-serif}main{max-width:920px;margin:auto;padding:20px 16px 60px}.top{display:flex;justify-content:space-between;gap:12px;align-items:center;margin-bottom:18px}.brand{font-size:1.55rem;font-weight:900;letter-spacing:-.04em}.brand small{display:block;font-size:.7rem;color:var(--muted);text-transform:uppercase;letter-spacing:.11em}.profile,.card{background:var(--card);border:1px solid var(--line);box-shadow:var(--shadow)}.profile{border-radius:14px;padding:9px 12px;min-width:155px}.level{font-weight:850;font-size:.9rem}.xptext{color:var(--muted);font-size:.75rem}.xpbar,.progress{height:6px;background:#e9e5de;border-radius:99px;overflow:hidden;margin-top:5px}.xpbar>div,.progress>div{height:100%;width:0;background:var(--accent);transition:.4s}.hero{display:grid;grid-template-columns:1.35fr .65fr;gap:14px;margin-bottom:14px}.card{border-radius:20px;padding:18px}.hero h1{font-size:clamp(2rem,7vw,3.7rem);line-height:1;letter-spacing:-.055em;margin:6px 0 11px}.eyebrow{font-size:.72rem;color:var(--accent);font-weight:850;text-transform:uppercase;letter-spacing:.12em}.muted{color:var(--muted);font-size:.9rem}.stats{display:grid;grid-template-columns:1fr 1fr;gap:8px}.stat{background:var(--soft);border:1px solid var(--line);border-radius:13px;padding:11px}.stat b{display:block;font-size:1.25rem}.stat span{font-size:.72rem;color:var(--muted)}.section{margin-top:14px}.section-head{display:flex;justify-content:space-between;align-items:end;margin-bottom:12px}.section h2{margin:0;font-size:1.15rem}.grid{display:grid;grid-template-columns:1fr 1fr;gap:13px}.upload{min-height:175px;border:1.5px dashed #bbb6ad;border-radius:15px;background:var(--soft);display:grid;place-items:center;text-align:center;padding:14px;cursor:pointer}.upload strong{display:block;margin:5px 0}.upload span{font-size:.8rem;color:var(--muted)}.stepbox{width:30px;height:30px;border-radius:9px;background:#ebe7df;display:grid;place-items:center;font-weight:900;margin:auto}input[type=file]{display:none}.preview{display:none;width:100%;max-height:300px;object-fit:cover;border-radius:14px;margin-top:10px}.field{display:block;font-size:.8rem;font-weight:800;margin:9px 0 5px}select,button{width:100%;height:45px;border-radius:11px;font:inherit}select{border:1px solid var(--line);background:white;padding:0 10px;color:var(--ink)}button{border:0;background:var(--ink);color:white;font-weight:850;cursor:pointer}button.primary{background:var(--accent)}button:disabled{opacity:.45;cursor:not-allowed}.status{display:none;margin-top:9px;background:#f3ede6;border-radius:10px;padding:9px 10px;color:#66564b;font-size:.86rem}.mission-head{display:flex;justify-content:space-between;gap:12px;padding-bottom:12px;border-bottom:1px solid var(--line)}.mission-name{font-size:1.3rem;font-weight:900;letter-spacing:-.03em}.rating{font-weight:900;letter-spacing:.08em}.progressrow{display:flex;justify-content:space-between;color:var(--muted);font-size:.8rem;margin-top:12px}.task{padding:13px 0;border-top:1px solid var(--line)}.task:first-of-type{border-top:0}.task-head{display:flex;gap:9px;align-items:flex-start}.task input{margin-top:4px}.task-title{font-weight:850}.task.done .task-title{text-decoration:line-through;color:var(--muted)}.meta{display:flex;gap:5px;flex-wrap:wrap;margin-top:5px}.pill{font-size:.7rem;padding:3px 7px;border:1px solid var(--line);border-radius:99px;background:var(--soft);color:var(--muted)}.reason,.supplies,.comparebox{margin:6px 0 0 23px;font-size:.85rem;color:var(--muted)}.comparebox{background:var(--soft);padding:8px 9px;border-radius:9px}.comparebox b{color:var(--ink)}.note{background:var(--soft);border:1px solid var(--line);border-radius:11px;padding:10px;font-size:.86rem}.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:12px 0}.kpi{text-align:center;border:1px solid var(--line);background:var(--soft);border-radius:12px;padding:10px}.kpi b{display:block;font-size:1.3rem}.kpi span{font-size:.7rem;color:var(--muted)}.two{display:grid;grid-template-columns:1fr 1fr;gap:12px}.list{padding-left:18px}.list li{margin:5px 0}.victory{display:none;margin-top:12px;padding:14px;border:1px solid #bad5c8;background:#eff7f3;border-radius:12px;color:var(--green)}.badges{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}.badge{border:1px solid var(--line);background:var(--soft);border-radius:12px;padding:10px;min-height:92px}.badge.locked{opacity:.38}.badgeicon{width:26px;height:26px;border-radius:8px;background:#e9e5de;display:grid;place-items:center;font-weight:900;margin-bottom:7px}.badgename{font-weight:850;font-size:.84rem}.badgedesc{font-size:.7rem;color:var(--muted);margin-top:2px}.toast{position:fixed;left:50%;bottom:18px;transform:translate(-50%,100px);background:#171a1f;color:white;border-radius:12px;padding:11px 13px;width:min(90vw,350px);box-shadow:0 14px 40px #0004;transition:.3s;z-index:30}.toast.show{transform:translate(-50%,0)}.toast small{color:#cdd0d3}.confetti{position:fixed;top:-12px;width:6px;height:10px;z-index:50;animation:fall 1.4s linear forwards}@keyframes fall{to{transform:translateY(110vh) rotate(520deg);opacity:.1}}@media(max-width:740px){.hero,.grid,.two{grid-template-columns:1fr}.stats{grid-template-columns:repeat(4,1fr)}.stat{padding:8px}.stat b{font-size:1rem}.kpis{grid-template-columns:repeat(2,1fr)}.badges{grid-template-columns:repeat(2,1fr)}}
-</style></head>
-<body><div id="toast" class="toast"><b id="toastTitle">Achievement unlocked</b><br><small id="toastSub"></small></div><main>
-<div class="top"><div class="brand">Room Rescue<small>turn rooms into progress</small></div><div class="profile"><div id="playerTitle" class="level">Level 1 · Starter</div><div id="xpValue" class="xptext">0 XP</div><div class="xpbar"><div id="xpBar"></div></div></div></div>
-<section class="hero"><div class="card"><div class="eyebrow">AI room coach</div><h1>See it. Plan it. Finish it.</h1><div class="muted">Take a room photo, get a focused plan, then verify your progress with an after photo. XP and achievements reward actual completed work.</div></div><div class="card stats"><div class="stat"><b id="roomsDone">0</b><span>rooms finished</span></div><div class="stat"><b id="tasksDone">0</b><span>tasks done</span></div><div class="stat"><b id="streakValue">1</b><span>day streak</span></div><div class="stat"><b id="badgeCount">0</b><span>achievements</span></div></div></section>
-<section class="card section"><div class="section-head"><div><h2>Start a room</h2><div class="muted">Use a clear before photo from an angle you can repeat later.</div></div></div><div class="grid"><div><label class="upload" for="beforePhoto"><div><div class="stepbox">01</div><strong id="beforeUploadLabel">Add before photo</strong><span>Take one now or choose from your phone</span></div></label><input id="beforePhoto" type="file" accept="image/*" capture="environment"><img id="beforePreview" class="preview"></div><div><label class="field">Room</label><select id="room"><option>Auto-detect</option><option>Living room</option><option>Bedroom</option><option>Kitchen</option><option>Bathroom</option><option>Garage</option><option>Laundry room</option><option>Office</option><option>Other</option></select><label class="field">Focus session</label><select id="budget"><option value="15">15 minutes</option><option value="30" selected>30 minutes</option><option value="60">1 hour</option><option value="120">2 hours</option></select><div style="height:10px"></div><button id="analyze" class="primary" disabled>Build my room plan</button><div id="status" class="status"></div></div></div></section>
-<section id="results" class="card section" style="display:none"><div class="mission-head"><div><div class="eyebrow">Current room</div><div id="roomTitle" class="mission-name">Room plan</div><div id="summary" class="muted"></div></div><div id="missionRating" class="rating">NEW</div></div><div class="progressrow"><span id="manualProgressText">0 tasks checked</span><span id="manualPct">0%</span></div><div class="progress"><div id="manualProgressBar"></div></div><div id="cautions" style="margin-top:10px"></div><div id="tasks"></div></section>
-<section id="afterSection" class="card section" style="display:none"><div class="section-head"><div><h2>Check progress</h2><div class="muted">Use roughly the same angle so the comparison is fair.</div></div></div><div class="grid"><div><label class="upload" for="afterPhoto"><div><div class="stepbox">02</div><strong id="afterUploadLabel">Add after photo</strong><span>Show what changed</span></div></label><input id="afterPhoto" type="file" accept="image/*" capture="environment"><img id="afterPreview" class="preview"></div><div><div class="note">The score only counts tasks the new photo can verify. If an area is hidden, that task stays open until the next photo.</div><div style="height:10px"></div><button id="compare" disabled>Compare before & after</button><div id="compareStatus" class="status"></div></div></div></section>
-<section id="comparison" class="card section" style="display:none"><div class="section-head"><div><div class="eyebrow">Progress report</div><h2 id="battleHeadline">Room progress</h2></div><div id="stars" class="rating">—</div></div><div id="compareSummary" class="muted"></div><div class="kpis"><div class="kpi"><b id="kpiPercent">0%</b><span>complete</span></div><div class="kpi"><b id="kpiDone">0</b><span>verified done</span></div><div class="kpi"><b id="kpiRemaining">0</b><span>remaining</span></div><div class="kpi"><b id="xpEarned">0</b><span>XP earned</span></div></div><div class="progress"><div id="compareProgressBar"></div></div><div id="encouragement" class="note" style="margin-top:10px"></div><div class="two" style="margin-top:12px"><div><h3>Completed well</h3><ul id="successes" class="list"></ul></div><div><h3>Still to do</h3><ul id="failures" class="list"></ul></div></div><div id="nextAction" class="note"></div><div id="remainingTasksWrap" style="margin-top:10px"></div><div id="victory" class="victory"><b>Room complete</b><br>100% verified. Nice work.</div></section>
-<section class="card section"><div class="section-head"><div><h2>Achievements</h2><div class="muted">Small rewards for real progress.</div></div></div><div id="trophyGrid" class="badges"></div></section>
-</main><script>
-const $=id=>document.getElementById(id),beforePhoto=$('beforePhoto'),afterPhoto=$('afterPhoto'),beforePreview=$('beforePreview'),afterPreview=$('afterPreview'),analyzeBtn=$('analyze'),compareBtn=$('compare');let analysisData=null,taskState=[],lastComparePercent=0;
-const A={first_scan:['S','First Scan','Start your first room'],first_task:['1','First Finish','Complete your first task'],five_tasks:['5','Momentum','Complete 5 tasks'],half_room:['50','Halfway','Reach 50% verified'],room_clear:['100','Room Complete','Reach 100% verified'],safety:['!','Safety First','Complete a safety task'],repair:['R','Fix It','Complete a repair task'],comeback:['+','Big Jump','Gain 50+ points at once']};
-function load(){try{return JSON.parse(localStorage.getItem('roomRescueQuest'))||{xp:0,completed:0,rooms:0,unlocked:[],streak:1,lastDay:null}}catch{return{xp:0,completed:0,rooms:0,unlocked:[],streak:1,lastDay:null}}}let p=load();function save(){localStorage.setItem('roomRescueQuest',JSON.stringify(p))}function touch(){const d=new Date().toISOString().slice(0,10);if(p.lastDay===d)return;const y=new Date(Date.now()-86400000).toISOString().slice(0,10);p.streak=p.lastDay===y?(p.streak||0)+1:1;p.lastDay=d;save()}
-function info(){const l=Math.floor(p.xp/250)+1,t=['Starter','Room Runner','Organizer','Fixer','Home Hero','Rescue Pro'];return{l,t:t[Math.min(l-1,t.length-1)],pct:(p.xp%250)/250*100}}function hud(){const x=info();$('playerTitle').textContent=`Level ${x.l} · ${x.t}`;$('xpValue').textContent=`${p.xp} XP`;$('xpBar').style.width=x.pct+'%';$('roomsDone').textContent=p.rooms||0;$('tasksDone').textContent=p.completed||0;$('streakValue').textContent=p.streak||1;$('badgeCount').textContent=p.unlocked.length}function badges(){$('trophyGrid').innerHTML=Object.entries(A).map(([k,a])=>`<div class="badge ${p.unlocked.includes(k)?'':'locked'}"><div class="badgeicon">${a[0]}</div><div class="badgename">${a[1]}</div><div class="badgedesc">${a[2]}</div></div>`).join('')}function toast(s){$('toastSub').textContent=s;$('toast').classList.add('show');setTimeout(()=>$('toast').classList.remove('show'),2200)}function unlock(k){if(p.unlocked.includes(k))return;p.unlocked.push(k);save();badges();hud();toast(A[k][1])}
-function confetti(){for(let i=0;i<28;i++){const e=document.createElement('div');e.className='confetti';e.style.left=Math.random()*100+'vw';e.style.background=['#ef6a3a','#2e7657','#d39a39','#66717c'][i%4];document.body.appendChild(e);setTimeout(()=>e.remove(),1600)}}function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]))}function status(el,t,show=true){el.textContent=t;el.style.display=show?'block':'none'}function preview(input,img,label){const f=input.files?.[0];if(!f)return;img.src=URL.createObjectURL(f);img.style.display='block';$(label).textContent=f.name}
-beforePhoto.onchange=()=>{preview(beforePhoto,beforePreview,'beforeUploadLabel');analyzeBtn.disabled=!beforePhoto.files?.[0]};afterPhoto.onchange=()=>{preview(afterPhoto,afterPreview,'afterUploadLabel');compareBtn.disabled=!(afterPhoto.files?.[0]&&analysisData&&beforePhoto.files?.[0])};function taskXP(t){return t.priority==='High'?50:t.priority==='Medium'?25:10}function manual(){const c=taskState.filter(t=>t.done).length,q=taskState.length?Math.round(c/taskState.length*100):0;$('manualProgressText').textContent=`${c} of ${taskState.length} checked off`;$('manualPct').textContent=q+'%';$('manualProgressBar').style.width=q+'%'}function tasks(){$('tasks').innerHTML='';taskState.forEach((t,i)=>{const e=document.createElement('div');e.className='task'+(t.done?' done':'');const cmp=t.compare?`<div class="comparebox"><b>${esc(t.compare.status)}</b> · ${esc(t.compare.evidence)}${t.compare.status!=='Completed'?`<br><b>Next:</b> ${esc(t.compare.next_step)}`:''}</div>`:'';e.innerHTML=`<div class="task-head"><input type="checkbox" ${t.done?'checked':''}><div><div class="task-title">${esc(t.title)}</div><div class="meta"><span class="pill">${esc(t.priority)}</span><span class="pill">${esc(t.category)}</span><span class="pill">${t.minutes} min</span><span class="pill">+${taskXP(t)} XP</span></div></div></div><div class="reason">${esc(t.reason)}</div>${t.supplies?.length?`<div class="supplies">Supplies: ${t.supplies.map(esc).join(', ')}</div>`:''}${cmp}`;e.querySelector('input').onchange=x=>{taskState[i].done=x.target.checked;tasks()};$('tasks').appendChild(e)});manual()}function grade(n){return n===100?'A+':n>=75?'A':n>=50?'B':n>=25?'C':'D'}
-analyzeBtn.onclick=async()=>{const f=beforePhoto.files?.[0];if(!f)return;analyzeBtn.disabled=true;status($('status'),'Analyzing the room and building a focused plan…');const b=new FormData();b.append('image',f);b.append('room_hint',$('room').value);b.append('time_budget',$('budget').value);try{const r=await fetch('/api/analyze',{method:'POST',body:b}),d=await r.json();if(!r.ok)throw new Error(d.detail||'Analysis failed.');analysisData=d;taskState=d.tasks.map(t=>({...t,done:false,compare:null}));$('roomTitle').textContent=d.room_type;$('summary').textContent=`${d.summary} · About ${d.estimated_total_minutes} minutes total.`;$('missionRating').textContent='NEW';$('cautions').innerHTML=d.cautions?.length?`<div class="note"><b>Watch for:</b> ${d.cautions.map(esc).join(' · ')}</div>`:'';tasks();$('results').style.display='block';$('afterSection').style.display='block';$('comparison').style.display='none';compareBtn.disabled=!afterPhoto.files?.[0];status($('status'),'',false);unlock('first_scan');$('results').scrollIntoView({behavior:'smooth'})}catch(e){status($('status'),e.message)}finally{analyzeBtn.disabled=false}};
-compareBtn.onclick=async()=>{const bf=beforePhoto.files?.[0],af=afterPhoto.files?.[0];if(!bf||!af||!analysisData)return;compareBtn.disabled=true;status($('compareStatus'),'Comparing the two photos…');const b=new FormData();b.append('before_image',bf);b.append('after_image',af);b.append('room_type',analysisData.room_type||'room');b.append('tasks_json',JSON.stringify(analysisData.tasks));try{const r=await fetch('/api/compare',{method:'POST',body:b}),d=await r.json();if(!r.ok)throw new Error(d.detail||'Comparison failed.');const m=new Map(d.task_results.map(t=>[t.title.trim().toLowerCase(),t]));let earned=0;taskState=taskState.map(t=>{const f=m.get(t.title.trim().toLowerCase())||null,j=f?.status==='Completed'&&t.compare?.status!=='Completed';if(j){earned+=taskXP(t);p.completed++;if(t.category==='Safety')unlock('safety');if(t.category==='Repair')unlock('repair')}return{...t,done:f?f.status==='Completed':t.done,compare:f}});if(p.completed>=1)unlock('first_task');if(p.completed>=5)unlock('five_tasks');if(d.completed_percentage>=50)unlock('half_room');if(d.completed_percentage-lastComparePercent>=50)unlock('comeback');if(d.completed_percentage===100&&!p.unlocked.includes('room_clear')){unlock('room_clear');p.rooms=(p.rooms||0)+1;earned+=100;confetti()}p.xp+=earned;save();hud();tasks();$('comparison').style.display='block';$('compareSummary').textContent=d.summary;$('kpiPercent').textContent=d.completed_percentage+'%';$('kpiDone').textContent=d.completed_tasks;$('kpiRemaining').textContent=d.total_tasks-d.completed_tasks;$('xpEarned').textContent='+'+earned;$('compareProgressBar').style.width=d.completed_percentage+'%';$('battleHeadline').textContent=d.completed_percentage===100?'Room complete':'Room progress';$('stars').textContent=grade(d.completed_percentage);$('missionRating').textContent=grade(d.completed_percentage);$('encouragement').textContent=d.encouragement;$('successes').innerHTML=(d.successes?.length?d.successes:['Progress is visible.']).map(x=>`<li>${esc(x)}</li>`).join('');$('failures').innerHTML=(d.failures?.length?d.failures:['Nothing major left.']).map(x=>`<li>${esc(x)}</li>`).join('');$('nextAction').textContent=d.next_action;$('remainingTasksWrap').innerHTML=d.remaining_tasks?.length?`<b>Remaining tasks</b><ul class="list">${d.remaining_tasks.map(x=>`<li>${esc(x)}</li>`).join('')}</ul>`:'';$('victory').style.display=d.completed_percentage===100?'block':'none';lastComparePercent=d.completed_percentage;status($('compareStatus'),'',false);$('comparison').scrollIntoView({behavior:'smooth'})}catch(e){status($('compareStatus'),e.message)}finally{compareBtn.disabled=false}};touch();hud();badges();
-</script></body></html>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#243028">
+  <meta name="description" content="Photograph a room and get a practical fix-up checklist — what to clean, repair, organize, or inspect.">
+  <title>Room Rescue</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,560;9..144,680&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/app.css">
+</head>
+<body>
+  <a class="skip" href="#photo">Skip to photo upload</a>
+
+  <header class="site-header">
+    <div class="site-header-inner">
+      <a class="mark" href="/" aria-label="Room Rescue home">
+        <svg class="mark-icon" viewBox="0 0 32 32" aria-hidden="true">
+          <path d="M4 15.2 16 5.5l12 9.7v11.3H4V15.2z" fill="none" stroke="currentColor" stroke-width="1.7"/>
+          <path d="M12 26.5v-8h8v8" fill="none" stroke="currentColor" stroke-width="1.7"/>
+        </svg>
+        <span>Room Rescue</span>
+      </a>
+      <p class="tagline">Photograph a room. Get a fix-up list.</p>
+      <p id="workSummary" class="work-summary" hidden></p>
+    </div>
+  </header>
+
+  <main>
+    <section class="panel" id="startPanel" aria-labelledby="startHeading">
+      <div class="panel-intro">
+        <h1 id="startHeading">Start with a photo</h1>
+        <p>Take one from an angle you can come back to. We’ll list what the picture actually shows — clean, fix, organize, or inspect — with time and supplies.</p>
+      </div>
+
+      <div class="photo-block" id="beforeBlock">
+        <input id="beforePhoto" type="file" accept="image/*" capture="environment">
+        <label class="dropzone" id="beforeDrop" for="beforePhoto">
+          <span class="dropzone-icon" aria-hidden="true">
+            <svg viewBox="0 0 48 48"><rect x="6" y="12" width="36" height="26" rx="2" fill="none" stroke="currentColor" stroke-width="1.75"/><circle cx="18" cy="23" r="4" fill="none" stroke="currentColor" stroke-width="1.75"/><path d="M6 32l10-9 8 7 6-5 12 10" fill="none" stroke="currentColor" stroke-width="1.75"/></svg>
+          </span>
+          <strong id="beforeUploadLabel">Add a room photo</strong>
+          <span>Camera or files · JPG, PNG, or HEIC</span>
+        </label>
+        <div class="photo-chosen" id="beforeChosen" hidden>
+          <img id="beforePreview" alt="Before photo preview">
+          <div class="photo-chosen-meta">
+            <strong id="beforeFileName">Photo selected</strong>
+            <span>Use the same angle later for a progress check.</span>
+            <label class="text-btn" for="beforePhoto">Change photo</label>
+          </div>
+        </div>
+      </div>
+
+      <div class="start-controls">
+        <div class="field">
+          <label for="room">Room</label>
+          <select id="room">
+            <option>Auto-detect</option>
+            <option>Living room</option>
+            <option>Bedroom</option>
+            <option>Kitchen</option>
+            <option>Bathroom</option>
+            <option>Garage</option>
+            <option>Laundry room</option>
+            <option>Office</option>
+            <option>Other</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="budget">Time you have</label>
+          <select id="budget">
+            <option value="15">15 minutes</option>
+            <option value="30" selected>30 minutes</option>
+            <option value="60">1 hour</option>
+            <option value="120">2 hours</option>
+          </select>
+        </div>
+        <button id="analyze" class="btn primary" disabled>Make a checklist</button>
+      </div>
+
+      <div id="analyzeWait" class="wait" hidden role="status" aria-live="polite">
+        <div class="wait-track"><div id="analyzeBar" class="wait-bar"></div></div>
+        <p id="analyzeWaitText" class="wait-text">Looking at the photo…</p>
+        <p class="wait-sub">Usually 10–20 seconds. The list only includes what’s visible.</p>
+      </div>
+      <p id="analyzeError" class="error" hidden></p>
+    </section>
+
+    <section class="panel" id="results" hidden aria-labelledby="roomTitle">
+      <header class="plan-head">
+        <div>
+          <p class="kicker">Checklist</p>
+          <h2 id="roomTitle">Room plan</h2>
+          <p id="summary" class="lede"></p>
+        </div>
+        <p id="planMeta" class="plan-meta"></p>
+      </header>
+      <div class="progress-line" aria-hidden="true">
+        <div id="manualProgressBar"></div>
+      </div>
+      <div class="progress-copy">
+        <span id="manualProgressText">0 checked</span>
+        <span id="manualPct">0%</span>
+      </div>
+      <div id="cautions"></div>
+      <div id="tasks" class="task-list"></div>
+    </section>
+
+    <section class="panel" id="afterSection" hidden aria-labelledby="afterHeading">
+      <div class="panel-intro">
+        <h2 id="afterHeading">Check the work</h2>
+        <p>Take another photo from roughly the same spot. We’ll only mark a task done if the new picture can show it.</p>
+      </div>
+
+      <div class="photo-block" id="afterBlock">
+        <input id="afterPhoto" type="file" accept="image/*" capture="environment">
+        <label class="dropzone compact" id="afterDrop" for="afterPhoto">
+          <span class="dropzone-icon" aria-hidden="true">
+            <svg viewBox="0 0 48 48"><rect x="6" y="12" width="36" height="26" rx="2" fill="none" stroke="currentColor" stroke-width="1.75"/><circle cx="18" cy="23" r="4" fill="none" stroke="currentColor" stroke-width="1.75"/><path d="M6 32l10-9 8 7 6-5 12 10" fill="none" stroke="currentColor" stroke-width="1.75"/></svg>
+          </span>
+          <strong id="afterUploadLabel">Add an after photo</strong>
+          <span>Same angle if you can</span>
+        </label>
+        <div class="photo-chosen" id="afterChosen" hidden>
+          <img id="afterPreview" alt="After photo preview">
+          <div class="photo-chosen-meta">
+            <strong id="afterFileName">Photo selected</strong>
+            <span>Hidden areas stay open until a later photo.</span>
+            <label class="text-btn" for="afterPhoto">Change photo</label>
+          </div>
+        </div>
+      </div>
+
+      <div class="after-actions">
+        <button id="compare" class="btn" disabled>Compare photos</button>
+      </div>
+      <div id="compareWait" class="wait" hidden role="status" aria-live="polite">
+        <div class="wait-track"><div id="compareBar" class="wait-bar"></div></div>
+        <p id="compareWaitText" class="wait-text">Comparing the two photos…</p>
+        <p class="wait-sub">Checking each task against what the new photo can show.</p>
+      </div>
+      <p id="compareError" class="error" hidden></p>
+    </section>
+
+    <section class="panel" id="comparison" hidden aria-labelledby="reportHeadline">
+      <header class="plan-head">
+        <div>
+          <p class="kicker">Progress check</p>
+          <h2 id="reportHeadline">What the photos show</h2>
+          <p id="compareSummary" class="lede"></p>
+        </div>
+        <p id="reportMeta" class="plan-meta"></p>
+      </header>
+      <div class="report-stats">
+        <div><b id="kpiPercent">0%</b><span>verified</span></div>
+        <div><b id="kpiDone">0</b><span>done</span></div>
+        <div><b id="kpiRemaining">0</b><span>still open</span></div>
+      </div>
+      <div class="progress-line" aria-hidden="true">
+        <div id="compareProgressBar"></div>
+      </div>
+      <p id="encouragement" class="note"></p>
+      <div class="report-columns">
+        <div>
+          <h3>Looks done</h3>
+          <ul id="successes"></ul>
+        </div>
+        <div>
+          <h3>Still to do</h3>
+          <ul id="failures"></ul>
+        </div>
+      </div>
+      <p id="nextAction" class="note"></p>
+      <div id="remainingTasksWrap"></div>
+      <p id="finishedNote" class="finished" hidden>This room looks finished from the photos.</p>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <p>Checked-off progress stays on this device. A task counts as finished when an after photo can show it.</p>
+  </footer>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>
