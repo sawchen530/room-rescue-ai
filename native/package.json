@@ -11,7 +11,7 @@
     "version:sync": "node scripts/sync-version.js"
   },
   "engines": {
-    "node": ">=20"
+    "node": ">=22"
   },
   "dependencies": {
     "@capacitor/android": "8.5.1",
