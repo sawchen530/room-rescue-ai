@@ -1,6 +1,6 @@
 # Room Rescue — store packaging (not submitted)
 
-This repository now has a **Capacitor shell** so Jeff can produce iOS and Android projects from the existing FastAPI + static web app. **Nothing has been submitted to the App Store or Play Store.** The next step is developer accounts, a Mac for the iOS archive, signing, screenshots, and review.
+This repository now has a **Capacitor shell** so Jeff can produce iOS and Android projects from the existing FastAPI + static web app. **Nothing has been submitted to the App Store or Play Store.** The next step is developer accounts, GitHub signing secrets, screenshots, and review — not a personal Mac.
 
 Live web (unchanged): [https://room-rescue-ai-production.up.railway.app](https://room-rescue-ai-production.up.railway.app)
 
@@ -49,28 +49,76 @@ npm install
 npx cap sync
 ```
 
-- **iOS archive / upload:** Mac + Xcode. Linux CI cannot sign or upload an App Store build. `native/ios/` is still in the repo so you can open it on a Mac without regenerating.
-- **Android:** `npx cap open android` (Android Studio). An AAB can be built on Linux or macOS once a Play keystore exists.
+- **iOS archive / upload:** GitHub Actions on `macos-latest` (see [Cloud Mac CI](#cloud-mac-ci-jeff-does-not-need-a-personal-mac)). You do not need a personal Mac. `native/ios/` stays in the repo so the cloud Mac (or Xcode, if you want it) can open the project without regenerating.
+- **Android:** `npx cap open android` (Android Studio) is optional. CI on Ubuntu builds a Play **AAB** when a keystore secret exists.
 - **Point at local FastAPI** (phone and computer on the same Wi-Fi; use the computer’s LAN IP, not `127.0.0.1`):
 
 ```bash
 cd native
 CAPACITOR_SERVER_URL=http://192.168.1.20:8000 npx cap sync
-npx cap open ios      # Mac
+npx cap open ios      # optional; archive is cloud Mac CI
 npx cap open android
 ```
 
 iOS Simulator can often use `http://127.0.0.1:8000`. Android Emulator uses `http://10.0.2.2:8000`.
 
+## Cloud Mac CI (Jeff does not need a personal Mac)
+
+GitHub Actions [`.github/workflows/native-store.yml`](.github/workflows/native-store.yml) replaces the old **“Mac with Xcode”** step. On `macos-latest` it runs, from `native/`, `npm ci` and `npx cap sync`, then archives the iOS app when Apple signing secrets are present. A Ubuntu job builds a Play **AAB** when a keystore secret exists.
+
+**This workflow does not submit the app.** With an App Store Connect API key it can upload a *build*. Jeff still clicks Submit for Review in Connect / Play Console.
+
+- If Apple signing secrets are missing, the iOS job **fails with a clear message**. It does not upload a dummy IPA or report a successful store build.
+- If `ANDROID_KEYSTORE_BASE64` is missing, the Android job **skips cleanly** (no AAB artifact, not a Play upload).
+
+### Required GitHub Actions secrets
+
+Repo → Settings → Secrets and variables → Actions. **Never commit these.** Bundle ID is `com.roomrescue.app`.
+
+**iOS archive** — all four required:
+
+| Secret | Contents |
+| --- | --- |
+| `APPLE_DISTRIBUTION_CERTIFICATE_P12_BASE64` | Apple **Distribution** `.p12`, base64-encoded |
+| `APPLE_DISTRIBUTION_CERTIFICATE_PASSWORD` | Password for that `.p12` |
+| `APPLE_PROVISIONING_PROFILE_BASE64` | App Store `.mobileprovision` for `com.roomrescue.app`, base64-encoded |
+| `APPLE_TEAM_ID` | 10-character Apple Developer Team ID |
+
+**iOS upload** (optional App Store Connect API key — upload a build, still not Submit):
+
+| Secret | Contents |
+| --- | --- |
+| `APP_STORE_CONNECT_API_KEY_ID` | Key ID |
+| `APP_STORE_CONNECT_API_ISSUER_ID` | Issuer ID (UUID) |
+| `APP_STORE_CONNECT_API_KEY_P8` | Full `.p8` private-key file text |
+
+**Android AAB** — skip the job if the keystore is unset:
+
+| Secret | Contents |
+| --- | --- |
+| `ANDROID_KEYSTORE_BASE64` | Play upload keystore (`.jks` / `.keystore`), base64-encoded |
+| `ANDROID_KEYSTORE_PASSWORD` | Keystore password |
+| `ANDROID_KEY_ALIAS` | Key alias |
+| `ANDROID_KEY_PASSWORD` | Key password (defaults to the keystore password if omitted) |
+
+Encode files locally (do not paste certs into git):
+
+```bash
+base64 -i AppleDistribution.p12 | pbcopy
+base64 -w0 AppStore_com.roomrescue.app.mobileprovision
+base64 -w0 play-upload.keystore
+```
+
+Create the Distribution cert and App Store profile in the [Apple Developer portal](https://developer.apple.com/account). Create an App Store Connect API key if you want CI to upload. Create a Play upload keystore if you want an AAB artifact. Then use **Actions → Native store builds → Run workflow**.
+
 ## What only Jeff can do
 
-These cannot be finished from this repo or from Linux CI:
+Cloud Mac CI does **not** replace accounts, secrets, screenshots, or Submit:
 
 - Enroll in the [Apple Developer Program](https://developer.apple.com/programs/) ($99/year) and create the App Store Connect listing
 - Create the [Google Play Console](https://play.google.com/console/) account ($25 one-time) and the Play listing
 - Confirm `com.roomrescue.app` is unused, or pick another bundle ID and update `native/app.json`
-- Create iOS signing (certificates, profiles) and Android Play App Signing / upload keystore
-- Build the iOS archive on a Mac and upload with Xcode or Transporter
+- Create iOS signing (certificates, profiles) and Android Play App Signing / upload keystore, then paste them as the GitHub secrets above
 - Answer export compliance, age rating, and privacy nutrition questionnaires
 - Recapture required screenshots on a **real device or simulator** (this repo has live-site frames in `docs/store-assets/`, not native captures)
 - Click Submit for Review

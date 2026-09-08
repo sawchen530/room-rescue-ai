@@ -170,11 +170,11 @@ Optional extras if a platform wants one more: `#HomeImprovement` or `#Declutter`
 
 This kit is for the **live website**. Native packaging is in the repo; **nothing has been submitted** to Apple or Google. Do not post “get it on the App Store” or “download on Google Play.”
 
-Accounts, signing, a Mac archive, and real-device screenshots are **only Jeff**. They are not done. See [STORE.md](../STORE.md) for the full list. In short:
+Accounts, signing secrets, real-device screenshots, and Submit are **only Jeff**. They are not done. A personal Mac is not required. See [STORE.md](../STORE.md) for the full list. In short:
 
 - Enroll in the [Apple Developer Program](https://developer.apple.com/programs/) and create the App Store Connect listing
 - Create the [Google Play Console](https://play.google.com/console/) account and Play listing
-- Build the iOS archive on a **Mac** and upload it (Linux cannot do this)
+- Provide Apple / Play signing secrets so **cloud Mac CI** can archive iOS and Ubuntu CI can build an AAB
 - Recapture required screenshots on a **real device or simulator** (this repo has live-site frames, not native captures)
 - Click Submit for Review — only when the checklist in [STORE.md](../STORE.md) and [app-store-checklist.md](app-store-checklist.md) is actually finished
 

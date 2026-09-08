@@ -1,6 +1,6 @@
 # App Store / Play Store checklist
 
-**Status: listing package in-repo; not submitted.** Room Rescue is not in review and not on either store. Do not click Submit. Use this list when Jeff has accounts and a Mac.
+**Status: listing package in-repo; not submitted.** Room Rescue is not in review and not on either store. Do not click Submit. Use this list when Jeff has accounts and GitHub signing secrets. A personal Mac is not required — cloud Mac CI archives iOS.
 
 Canonical packaging notes: [STORE.md](../STORE.md). Live web: [https://room-rescue-ai-production.up.railway.app](https://room-rescue-ai-production.up.railway.app)
 
@@ -25,8 +25,8 @@ Framed live-site screenshots + capture plan: [store-assets/README.md](store-asse
 | Apple Developer Program ($99/year) + App Store Connect app record | **Jeff** |
 | Google Play Console ($25) + Play app record | **Jeff** |
 | Confirm `com.roomrescue.app` is unused | **Jeff** |
-| iOS signing + **Mac archive** / upload | **Jeff** (Linux cannot do this) |
-| Android Play App Signing + upload keystore + AAB | **Jeff** |
+| iOS signing secrets + **cloud Mac CI** archive / upload | **Jeff** provides secrets; Actions on `macos-latest` (no personal Mac) |
+| Android Play App Signing + upload keystore + AAB | **Jeff** provides keystore secret; Ubuntu CI builds the AAB |
 | Export compliance, age rating, privacy nutrition / Data safety questionnaires | Draft answers below; **Jeff** confirms in the forms |
 | Final screenshots on **real devices** (or Xcode/Android simulators at the exact slots) | **Jeff** — replace the web frames before review |
 | Click Submit for Review | **Jeff — do not treat this PR as a submission** |
@@ -51,13 +51,13 @@ Canonical strings are in [store-listing.md](store-listing.md). Do not claim a pr
 
 1. Enroll in the [Apple Developer Program](https://developer.apple.com/programs/) — **$99 USD/year**.
 2. In [App Store Connect](https://appstoreconnect.apple.com/) create the app with bundle ID **`com.roomrescue.app`** (or another ID if this one is taken — then update `native/app.json` and re-sync).
-3. Create an iOS Distribution certificate and App Store provisioning profile (Xcode “Automatically manage signing” is fine).
-4. On a **Mac**: `cd native && npm install && npx cap sync && npx cap open ios`.
-5. In Xcode: pick a Team, bump version if needed (`1.0.0` / build `1` is already set), Product → Archive, Distribute to App Store Connect.
+3. Create an iOS Distribution certificate and App Store provisioning profile, plus (recommended) an App Store Connect API key.
+4. Put those files in GitHub Actions secrets (see [STORE.md](../STORE.md) — **cloud Mac CI**). Jeff does not need a personal Mac.
+5. Run **Actions → Native store builds**. The `macos-latest` job runs `npm ci`, `npx cap sync`, and archives when secrets are present. Missing secrets fail with a clear message (not a fake success).
 6. Fill the listing from [store-listing.md](store-listing.md), privacy nutrition label, age rating, review notes, and **real-device screenshots**.
 7. Submit for Review. **Do not treat this PR as a submission.**
 
-Linux CI cannot produce a signed iOS App Store build. `native/ios/` is checked in so the Mac step is “open and archive,” not “invent a project.”
+`native/ios/` is checked in so CI (or optional local Xcode) opens an existing project, not a generated stub.
 
 ### iOS technical notes already in the scaffold
 
@@ -136,10 +136,10 @@ Do not use marketing mockups that imply a different product. Dark olive + cream 
 2. Create the app **Room Rescue**, package name **`com.roomrescue.app`**.
 3. Complete the store listing, content rating (IARC), Target audience, Data safety, and News / COVID / Financial declarations as applicable (this app is none of those).
 4. Create a Play App Signing key (Google can generate and hold it) and an upload keystore that **never** goes in git.
-5. Build an **AAB** (`cd native && npx cap sync` then Android Studio → Generate App Bundle, or `./gradlew bundleRelease` after a release keystore is configured).
-6. Upload to an internal testing track first, then production. **This PR does not upload anything.**
+5. Put the upload keystore in GitHub Actions secrets (`ANDROID_KEYSTORE_BASE64` and related — [STORE.md](../STORE.md)). Ubuntu CI runs `bundleRelease` when the keystore exists and **skips cleanly** if it does not.
+6. Upload the AAB artifact to an internal testing track first, then production. **This PR does not upload anything.**
 
-An Android bundle can be produced on Linux; Play still needs Jeff’s account and signing.
+Play still needs Jeff’s account. The keystore must never go in git.
 
 ### Android technical notes already in the scaffold
 

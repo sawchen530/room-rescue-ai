@@ -79,6 +79,8 @@ def test_native_projects_use_bundle_id():
     assert 'applicationId "com.roomrescue.app"' in gradle_text
     assert 'versionName "1.0.0"' in gradle_text
     assert re.search(r"versionCode\s+1\b", gradle_text)
+    assert "ROOMRESCUE_RELEASE_STORE_FILE" in gradle_text
+    assert "signingConfigs" in gradle_text
 
     pbx_text = pbx.read_text()
     assert "com.roomrescue.app" in pbx_text
