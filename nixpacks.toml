@@ -1,0 +1,4 @@
+# Pin the web process so adding native/ (Node + Capacitor) never
+# changes how Railway starts FastAPI. Install stays Nixpacks default.
+[start]
+cmd = "uvicorn app:app --host 0.0.0.0 --port $PORT"

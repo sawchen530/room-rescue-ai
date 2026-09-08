@@ -1,0 +1,25 @@
+{
+  "name": "room-rescue-native",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Capacitor iOS/Android shell for Room Rescue. Loads the live FastAPI web app.",
+  "scripts": {
+    "sync": "npx cap sync",
+    "open:ios": "npx cap open ios",
+    "open:android": "npx cap open android",
+    "assets": "npx capacitor-assets generate --ios --android --assetPath assets",
+    "version:sync": "node scripts/sync-version.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "@capacitor/android": "8.5.1",
+    "@capacitor/core": "8.5.1",
+    "@capacitor/ios": "8.5.1"
+  },
+  "devDependencies": {
+    "@capacitor/assets": "3.0.5",
+    "@capacitor/cli": "8.5.1"
+  }
+}

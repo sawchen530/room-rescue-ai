@@ -16,7 +16,11 @@ Photos are sent to our server in memory, then to OpenAI’s vision API for analy
 
 You can try the product without your own picture via **Use a sample room** (a bundled living-room photo). Privacy notes live at `/privacy`. Short terms — DIY helper, not professional advice — live at `/terms`.
 
-## Run locally
+Native iOS/Android packaging is a Capacitor shell around this same site. **It is not on the App Store or Play Store yet.** See [STORE.md](STORE.md) and [docs/app-store-checklist.md](docs/app-store-checklist.md).
+
+## Run locally (web)
+
+This is the product Railway deploys. Native packaging does not replace it.
 
 ```bash
 python3 -m venv .venv
@@ -48,6 +52,40 @@ uvicorn app:app --host 0.0.0.0 --port $PORT
 
 Set `OPENAI_API_KEY` in Railway variables. Leave `ENABLE_DOCS` unset on the public deploy.
 
+A `Procfile` and `nixpacks.toml` pin the same start command so the Capacitor project under `native/` is not treated as the web app.
+
+## Native iOS / Android (Capacitor)
+
+The app is FastAPI + static files. Checklists need `/api/analyze` and `/api/compare` (photos → our server → OpenAI), so the Capacitor WebView loads the **production URL** instead of shipping a second copy of `static/`.
+
+| | |
+| --- | --- |
+| App name | Room Rescue |
+| Bundle ID | `com.roomrescue.app` |
+| Version | `1.0.0` (store-candidate; not submitted) |
+| Shell | `native/` (`ios/`, `android/`, `capacitor.config.js`) |
+
+**Jeff, prepare the native projects** (after the usual web `uvicorn` setup above if you want a local WebView target):
+
+```bash
+cd native
+npm install
+npx cap sync
+```
+
+- **iOS:** needs a Mac. `npx cap open ios` then archive in Xcode. Linux cannot sign or upload an App Store build. The `native/ios/` folder is still in git so you do not regenerate it from scratch.
+- **Android:** `npx cap open android` in Android Studio. An AAB can be built on Linux or a Mac once a Play upload key exists.
+- **Talk to local FastAPI** (phone and computer on one network — use the computer’s LAN IP):
+
+```bash
+cd native
+CAPACITOR_SERVER_URL=http://192.168.1.20:8000 npx cap sync
+```
+
+iOS Simulator: `http://127.0.0.1:8000`. Android Emulator: `http://10.0.2.2:8000`.
+
+Accounts, signing, screenshots, and clicking Submit are **only Jeff** — listed in [STORE.md](STORE.md).
+
 ## Privacy and terms
 
-Plain-English privacy notes live at `/privacy`. Short terms — DIY helper, not professional advice — live at `/terms`. Native App Store / Play Store packaging is a later step; this repo is the web product.
+Plain-English privacy notes live at `/privacy`. Short terms — DIY helper, not professional advice — live at `/terms`.

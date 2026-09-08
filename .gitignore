@@ -3,3 +3,26 @@
 __pycache__/
 *.pyc
 .DS_Store
+
+# Capacitor / Node (project lives in native/)
+node_modules/
+native/node_modules/
+native/ios/App/Pods/
+native/ios/App/build/
+native/ios/DerivedData/
+native/android/.gradle/
+native/android/app/build/
+native/android/build/
+native/android/local.properties
+native/android/.idea/
+*.iml
+
+# Store binaries Jeff builds locally — never commit signed artifacts
+*.ipa
+*.apk
+*.aab
+*.dSYM.zip
+*.mobileprovision
+*.jks
+*.keystore
+play-signing.json
