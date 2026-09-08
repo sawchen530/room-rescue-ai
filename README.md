@@ -18,6 +18,8 @@ You can try the product without your own picture via **Use a sample room** (a bu
 
 Native iOS/Android packaging is a Capacitor shell around this same site. **It is not on the App Store or Play Store yet.** See [STORE.md](STORE.md), paste-ready listing copy in [docs/store-listing.md](docs/store-listing.md), framed screenshots in [docs/store-assets/](docs/store-assets/), and [docs/app-store-checklist.md](docs/app-store-checklist.md).
 
+Paste-ready social / Product Hunt / friend-intro copy: [docs/marketing.md](docs/marketing.md).
+
 ## Run locally (web)
 
 This is the product Railway deploys. Native packaging does not replace it.

@@ -6,7 +6,8 @@ Live web (unchanged): [https://room-rescue-ai-production.up.railway.app](https:/
 
 Listing copy (paste into Connect / Play Console): [docs/store-listing.md](docs/store-listing.md)  
 Screenshot capture plan + framed web shots: [docs/store-assets/README.md](docs/store-assets/README.md)  
-Detailed submission steps: [docs/app-store-checklist.md](docs/app-store-checklist.md)
+Detailed submission steps: [docs/app-store-checklist.md](docs/app-store-checklist.md)  
+Share / Product Hunt / friend-intro copy (web only; stores are not submitted): [docs/marketing.md](docs/marketing.md)
 
 ## Why a WebView of the live site
 
