@@ -233,6 +233,11 @@ def favicon_svg():
     return FileResponse("static/favicon.svg", media_type="image/svg+xml")
 
 
+@app.get("/favicon-32.png")
+def favicon_png():
+    return FileResponse("static/favicon-32.png", media_type="image/png")
+
+
 @app.get("/apple-touch-icon.png")
 def apple_touch_icon():
     return FileResponse("static/apple-touch-icon.png", media_type="image/png")
