@@ -26,6 +26,7 @@ def test_workflow_runs_cap_sync_on_cloud_mac_and_ubuntu():
     assert "runs-on: ubuntu-latest" in WORKFLOW
     assert "npm ci" in WORKFLOW
     assert "npx cap sync" in WORKFLOW
+    assert 'node-version: "22"' in WORKFLOW
     assert "working-directory: native" in WORKFLOW
     assert "com.roomrescue.app" in WORKFLOW
     assert "xcodebuild" in WORKFLOW
