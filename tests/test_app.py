@@ -52,10 +52,14 @@ def test_home_privacy_and_terms():
     assert "Use a sample room" in response.text
     assert 'href="/terms"' in response.text
     assert "Share checklist" in response.text
+    assert "not professional advice" in response.text
+    assert "trust the room" in response.text
 
     privacy = client().get("/privacy")
     assert privacy.status_code == 200
     assert "local storage" in privacy.text.lower() or "localStorage" in privacy.text
+    assert "children" in privacy.text.lower()
+    assert "openai" in privacy.text.lower()
 
     terms = client().get("/terms")
     assert terms.status_code == 200
@@ -64,6 +68,7 @@ def test_home_privacy_and_terms():
     assert "diy" in text
     assert "wrong" in text
     assert "safety" in text or "qualified" in text
+    assert "as-is" in text or "as is" in text
 
 
 def test_robots_and_sitemap():
@@ -92,6 +97,7 @@ def test_health_and_manifest():
     assert manifest.status_code == 200
     assert manifest.json()["name"] == "Room Rescue"
     assert manifest.json()["theme_color"] == "#243028"
+    assert "not a professional inspection" in manifest.json()["description"].lower()
 
 
 def test_static_assets_have_cache_headers():

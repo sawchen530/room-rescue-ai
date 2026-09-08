@@ -87,7 +87,7 @@
     const el = $("workSummary");
     const parts = [];
     if (work.rooms) parts.push(work.rooms === 1 ? "1 room finished" : `${work.rooms} rooms finished`);
-    if (work.verified) parts.push(work.verified === 1 ? "1 task verified" : `${work.verified} tasks verified`);
+    if (work.verified) parts.push(work.verified === 1 ? "1 task checked" : `${work.verified} tasks checked`);
     if (work.streak >= 2) parts.push(`${work.streak}-day streak`);
     if (!parts.length) {
       el.hidden = true;

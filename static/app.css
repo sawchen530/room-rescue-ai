@@ -696,6 +696,11 @@ select {
 
 .prose p { color: var(--mute); max-width: 40rem; }
 
+.legal-updated {
+  margin-top: 22px;
+  font-size: 0.82rem;
+}
+
 :focus-visible {
   outline: 2px solid var(--focus);
   outline-offset: 2px;

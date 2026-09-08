@@ -1,4 +1,4 @@
-const CACHE = "room-rescue-v2";
+const CACHE = "room-rescue-v3";
 const PRECACHE = [
   "/",
   "/privacy",

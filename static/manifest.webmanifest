@@ -1,7 +1,7 @@
 {
   "name": "Room Rescue",
   "short_name": "Room Rescue",
-  "description": "Photograph a room and get a practical fix-up checklist.",
+  "description": "A DIY photo checklist for rooms. Not a professional inspection.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
