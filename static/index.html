@@ -8,19 +8,19 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-title" content="Room Rescue">
   <title>Room Rescue — Photograph a room. Get a fix-up list.</title>
-  <meta name="description" content="Photograph a room and get a practical DIY checklist — what to clean, repair, organize, or inspect — then verify progress with an after photo.">
+  <meta name="description" content="A DIY photo checklist for rooms — what to clean, repair, organize, or inspect. Not a professional inspection. Check progress with an after photo.">
   <link rel="canonical" href="https://room-rescue-ai-production.up.railway.app/">
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="Room Rescue">
   <meta property="og:url" content="https://room-rescue-ai-production.up.railway.app/">
   <meta property="og:title" content="Room Rescue — Photograph a room. Get a fix-up list.">
-  <meta property="og:description" content="A photo-first checklist for DIY homeowners. See what’s visible, work the list, then check it with an after photo.">
+  <meta property="og:description" content="A DIY photo checklist for homeowners. Draft a starting list from a room photo — not a professional inspection.">
   <meta property="og:image" content="https://room-rescue-ai-production.up.railway.app/static/og-image.png">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="Room Rescue — Photograph a room. Get a fix-up list.">
-  <meta name="twitter:description" content="A photo-first checklist for DIY homeowners. See what’s visible, work the list, then check it with an after photo.">
+  <meta name="twitter:description" content="A DIY photo checklist for homeowners. Draft a starting list from a room photo — not a professional inspection.">
   <meta name="twitter:image" content="https://room-rescue-ai-production.up.railway.app/static/og-image.png">
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
   <link rel="icon" href="/static/favicon-32.png" type="image/png" sizes="32x32">
@@ -52,7 +52,7 @@
     <section class="panel" id="startPanel" aria-labelledby="startHeading">
       <div class="panel-intro">
         <h1 id="startHeading">Start with a photo</h1>
-        <p>Take one from an angle you can come back to. We’ll list what the picture actually shows — clean, fix, organize, or inspect — with time and supplies.</p>
+        <p>Take one from an angle you can come back to. We’ll draft a DIY list from what’s visible — clean, fix, organize, or inspect — with time and supplies. It can miss things; trust the room.</p>
       </div>
 
       <ol class="how" aria-label="How it works">
@@ -80,6 +80,11 @@
           </div>
         </div>
       </div>
+
+      <p class="sample-row" id="sampleRow">
+        <button type="button" id="useSample" class="text-btn as-button">Use a sample room</button>
+        <span>See a checklist in one tap — no photo of yours required.</span>
+      </p>
 
       <div class="start-controls">
         <div class="field">
@@ -111,7 +116,7 @@
       <div id="analyzeWait" class="wait" hidden role="status" aria-live="polite">
         <div class="wait-track"><div id="analyzeBar" class="wait-bar"></div></div>
         <p id="analyzeWaitText" class="wait-text">Looking at the photo…</p>
-        <p class="wait-sub">Usually 10–20 seconds. The list only includes what’s visible.</p>
+        <p class="wait-sub">Usually 10–20 seconds. Treat the list as a starting point — it can be wrong.</p>
       </div>
       <div id="analyzeErrorBox" class="error-box" hidden>
         <p id="analyzeError" class="error"></p>
@@ -128,8 +133,10 @@
         </div>
         <p id="planMeta" class="plan-meta"></p>
       </header>
+      <p id="sampleBanner" class="sample-banner" hidden></p>
       <div class="plan-actions no-print">
         <button type="button" id="saveChecklist" class="text-btn as-button">Save checklist</button>
+        <button type="button" id="shareChecklist" class="text-btn as-button">Share checklist</button>
         <button type="button" id="printChecklist" class="text-btn as-button">Print</button>
         <button type="button" id="newRoom" class="text-btn as-button">Start a new room</button>
       </div>
@@ -143,12 +150,13 @@
       <div id="cautions"></div>
       <div id="tasks" class="task-list"></div>
       <p id="emptyTasks" class="empty-state" hidden>No tasks came back from that photo. Try a wider, brighter shot of the same room.</p>
+      <p id="afterPlanCta" class="next-cta" hidden>When you’ve done a few items, <a href="#afterBlock">take an after photo</a> from the same spot to check what’s done.</p>
     </section>
 
     <section class="panel" id="afterSection" hidden aria-labelledby="afterHeading">
       <div class="panel-intro">
         <h2 id="afterHeading">Check the work</h2>
-        <p>Take another photo from roughly the same spot. We’ll only mark a task done if the new picture can show it.</p>
+        <p id="afterHint">Take another photo from roughly the same spot. We’ll only mark a task done if the new picture can show it.</p>
       </div>
 
       <div class="photo-block" id="afterBlock">
@@ -195,7 +203,7 @@
         <p id="reportMeta" class="plan-meta"></p>
       </header>
       <div class="report-stats">
-        <div><b id="kpiPercent">0%</b><span>verified</span></div>
+        <div><b id="kpiPercent">0%</b><span>in the photos</span></div>
         <div><b id="kpiDone">0</b><span>done</span></div>
         <div><b id="kpiRemaining">0</b><span>still open</span></div>
       </div>
@@ -224,7 +232,9 @@
     <p class="footer-links">
       <a href="/privacy">Privacy</a>
       <span aria-hidden="true">·</span>
-      <span>Built for fixing rooms</span>
+      <a href="/terms">Terms</a>
+      <span aria-hidden="true">·</span>
+      <span>DIY helper, not professional advice</span>
     </p>
   </footer>
 

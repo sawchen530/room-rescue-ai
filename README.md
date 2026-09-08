@@ -9,10 +9,12 @@ Built for DIY homeowners. No account, no payments, no photo library.
 ## How it works
 
 1. Take a before photo from an angle you can repeat.
-2. Room Rescue lists what’s actually visible, with time and ordinary supplies.
+2. Room Rescue drafts a starting list from what’s visible, with time and ordinary supplies. The list can be wrong — see `/terms`.
 3. Take an after photo from the same spot to check what’s done.
 
-Photos are sent to our server in memory, then to OpenAI’s vision API for analysis. We do not store photos as a product feature. Checkmarks and a light progress summary stay in this browser’s local storage.
+Photos are sent to our server in memory, then to OpenAI’s vision API for analysis. Large JPG/PNG/WebP shots are resized in the browser first so mobile uploads stay small; HEIC is left as-is when the phone format can’t be decoded. We do not store photos as a product feature. Checkmarks and a light progress summary stay in this browser’s local storage.
+
+You can try the product without your own picture via **Use a sample room** (a bundled living-room photo). Privacy notes live at `/privacy`. Short terms — DIY helper, not professional advice — live at `/terms`.
 
 ## Run locally
 
@@ -46,6 +48,6 @@ uvicorn app:app --host 0.0.0.0 --port $PORT
 
 Set `OPENAI_API_KEY` in Railway variables. Leave `ENABLE_DOCS` unset on the public deploy.
 
-## Privacy
+## Privacy and terms
 
-Plain-English notes live at `/privacy`.
+Plain-English privacy notes live at `/privacy`. Short terms — DIY helper, not professional advice — live at `/terms`. Native App Store / Play Store packaging is a later step; this repo is the web product.

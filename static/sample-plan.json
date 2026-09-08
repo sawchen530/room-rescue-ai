@@ -1,0 +1,101 @@
+{
+  "room_type": "Living room",
+  "summary": "A lived-in living room with a clear first session: clear the coffee table, get the cord off the floor, and tidy the obvious piles. Nothing here looks like a hidden hazard — just ordinary Saturday work.",
+  "tasks": [
+    {
+      "title": "Clear mugs, mail, and remotes from the coffee table",
+      "category": "Organization",
+      "priority": "High",
+      "minutes": 10,
+      "reason": "The table is covered with cups, a mail stack, remotes, and a bottle — no usable surface.",
+      "confidence": "High",
+      "diy_level": "Easy",
+      "supplies": ["bin", "recycling"]
+    },
+    {
+      "title": "Coil the charging cable so it is off the walkway",
+      "category": "Safety",
+      "priority": "High",
+      "minutes": 5,
+      "reason": "A white cable is lying across the floor near the sofa — a simple trip risk.",
+      "confidence": "High",
+      "diy_level": "Easy",
+      "supplies": ["cable tie"]
+    },
+    {
+      "title": "Put the sneakers away from the wall",
+      "category": "Organization",
+      "priority": "Medium",
+      "minutes": 3,
+      "reason": "A pair of shoes is sitting on the floor beside the sofa instead of a rack or closet.",
+      "confidence": "High",
+      "diy_level": "Easy",
+      "supplies": []
+    },
+    {
+      "title": "Sort the laundry basket in the corner",
+      "category": "Organization",
+      "priority": "Medium",
+      "minutes": 12,
+      "reason": "A full basket of mixed clothes is parked in the corner of the room.",
+      "confidence": "High",
+      "diy_level": "Easy",
+      "supplies": ["hamper"]
+    },
+    {
+      "title": "Dust the TV stand and straighten the frames",
+      "category": "Cleaning",
+      "priority": "Medium",
+      "minutes": 10,
+      "reason": "The stand looks dusty and the small frames are crowded along the shelf.",
+      "confidence": "Medium",
+      "diy_level": "Easy",
+      "supplies": ["microfiber cloth"]
+    },
+    {
+      "title": "Wipe the coffee table once it is clear",
+      "category": "Cleaning",
+      "priority": "Medium",
+      "minutes": 5,
+      "reason": "Rings and scattered items suggest the wood top needs a quick wipe.",
+      "confidence": "Medium",
+      "diy_level": "Easy",
+      "supplies": ["all-purpose spray", "cloth"]
+    },
+    {
+      "title": "Neaten the sofa pillows",
+      "category": "Organization",
+      "priority": "Low",
+      "minutes": 2,
+      "reason": "The throw pillows are slumped and uneven on the sofa.",
+      "confidence": "High",
+      "diy_level": "Easy",
+      "supplies": []
+    },
+    {
+      "title": "Check the houseplant and water if the soil is dry",
+      "category": "Inspection",
+      "priority": "Low",
+      "minutes": 5,
+      "reason": "The plant on the stand looks droopy; a photo cannot confirm soil moisture.",
+      "confidence": "Medium",
+      "diy_level": "Easy",
+      "supplies": ["watering can"]
+    },
+    {
+      "title": "Sweep or vacuum the hardwood in the open floor",
+      "category": "Cleaning",
+      "priority": "Low",
+      "minutes": 8,
+      "reason": "The floor is mostly clear, which makes a quick pass easy before things pile up again.",
+      "confidence": "Medium",
+      "diy_level": "Easy",
+      "supplies": ["broom"]
+    }
+  ],
+  "cautions": [
+    "The cable on the floor is a trip hazard — pick it up before you carry laundry or drinks through that path.",
+    "This sample list is a DIY starter, not a professional inspection. If something in a real room looks unsafe, stop and get qualified help."
+  ],
+  "estimated_total_minutes": 60
+}

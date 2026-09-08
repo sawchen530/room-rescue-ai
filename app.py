@@ -179,6 +179,11 @@ def privacy():
     return _html("static/privacy.html")
 
 
+@app.get("/terms")
+def terms():
+    return _html("static/terms.html")
+
+
 @app.get("/health")
 def health():
     return {"status": "ok"}
@@ -205,6 +210,7 @@ def sitemap():
         '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
         f"  <url><loc>{PUBLIC_BASE_URL}/</loc></url>\n"
         f"  <url><loc>{PUBLIC_BASE_URL}/privacy</loc></url>\n"
+        f"  <url><loc>{PUBLIC_BASE_URL}/terms</loc></url>\n"
         "</urlset>\n"
     )
     return Response(content=body, media_type="application/xml", headers={"Cache-Control": "public, max-age=86400"})
