@@ -25,6 +25,7 @@ This is scaffolding. Apple and Google sometimes reject thin website wrappers (Ap
 | Bundle ID / applicationId | `com.roomrescue.app` |
 | Version | `1.0.0` (store-candidate number; **not shipped**) |
 | Android `versionCode` / iOS build | `1` |
+| Apple Team ID | `4Z83VV99SL` |
 | Production URL | `https://room-rescue-ai-production.up.railway.app` |
 
 Bump `native/app.json`, then from `native/` run `npm run version:sync` and commit the iOS/Android file changes.
@@ -68,6 +69,8 @@ GitHub Actions [`.github/workflows/native-store.yml`](.github/workflows/native-s
 
 **This workflow does not submit the app.** With an App Store Connect API key it can upload a *build*. Jeff still clicks Submit for Review in Connect / Play Console.
 
+Apple signing secrets are saved. Team ID is `4Z83VV99SL`. First archive requested 2026-09-08. Not submitted.
+
 - If Apple signing secrets are missing, the iOS job **fails with a clear message**. It does not upload a dummy IPA or report a successful store build.
 - If `ANDROID_KEYSTORE_BASE64` is missing, the Android job **skips cleanly** (no AAB artifact, not a Play upload).
 
@@ -82,7 +85,7 @@ Repo → Settings → Secrets and variables → Actions. **Never commit these.**
 | `APPLE_DISTRIBUTION_CERTIFICATE_P12_BASE64` | Apple **Distribution** `.p12`, base64-encoded |
 | `APPLE_DISTRIBUTION_CERTIFICATE_PASSWORD` | Password for that `.p12` |
 | `APPLE_PROVISIONING_PROFILE_BASE64` | App Store `.mobileprovision` for `com.roomrescue.app`, base64-encoded |
-| `APPLE_TEAM_ID` | 10-character Apple Developer Team ID |
+| `APPLE_TEAM_ID` | 10-character Apple Developer Team ID (`4Z83VV99SL`) |
 
 **iOS upload** (optional App Store Connect API key — upload a build, still not Submit):
 
