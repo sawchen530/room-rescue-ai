@@ -496,26 +496,33 @@
     const title = `${analysisData.room_type || "Room"} checklist — Room Rescue`;
     const url = "https://room-rescue-ai-production.up.railway.app/";
     const button = $("shareChecklist");
-    if (navigator.share) {
+    const payload = `${title}\n${url}\n\n${text}`;
+    const preferShare =
+      typeof navigator.share === "function" &&
+      (navigator.userAgentData?.mobile || /Mobi|Android/i.test(navigator.userAgent));
+
+    if (preferShare) {
       try {
         await navigator.share({ title, text, url });
+        button.textContent = "Shared";
+        setTimeout(() => {
+          button.textContent = "Share checklist";
+        }, 1600);
         return;
       } catch (error) {
         if (error?.name === "AbortError") return;
       }
     }
+
     try {
-      await navigator.clipboard.writeText(`${title}\n\n${text}`);
+      await navigator.clipboard.writeText(payload);
       button.textContent = "Copied";
-      setTimeout(() => {
-        button.textContent = "Share checklist";
-      }, 1600);
     } catch {
       button.textContent = "Couldn’t copy";
-      setTimeout(() => {
-        button.textContent = "Share checklist";
-      }, 1600);
     }
+    setTimeout(() => {
+      button.textContent = "Share checklist";
+    }, 1600);
   }
 
   function applyAnalysis(data, { sample = false, canned = false } = {}) {
