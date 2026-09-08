@@ -4,6 +4,8 @@ This repository now has a **Capacitor shell** so Jeff can produce iOS and Androi
 
 Live web (unchanged): [https://room-rescue-ai-production.up.railway.app](https://room-rescue-ai-production.up.railway.app)
 
+Listing copy (paste into Connect / Play Console): [docs/store-listing.md](docs/store-listing.md)  
+Screenshot capture plan + framed web shots: [docs/store-assets/README.md](docs/store-assets/README.md)  
 Detailed submission steps: [docs/app-store-checklist.md](docs/app-store-checklist.md)
 
 ## Why a WebView of the live site
@@ -69,7 +71,7 @@ These cannot be finished from this repo or from Linux CI:
 - Create iOS signing (certificates, profiles) and Android Play App Signing / upload keystore
 - Build the iOS archive on a Mac and upload with Xcode or Transporter
 - Answer export compliance, age rating, and privacy nutrition questionnaires
-- Capture required device screenshots
+- Recapture required screenshots on a **real device or simulator** (this repo has live-site frames in `docs/store-assets/`, not native captures)
 - Click Submit for Review
 
 ## Privacy (for store forms)
