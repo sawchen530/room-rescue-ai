@@ -4,8 +4,28 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#243028">
-  <meta name="description" content="Photograph a room and get a practical fix-up checklist — what to clean, repair, organize, or inspect.">
-  <title>Room Rescue</title>
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Room Rescue">
+  <title>Room Rescue — Photograph a room. Get a fix-up list.</title>
+  <meta name="description" content="Photograph a room and get a practical DIY checklist — what to clean, repair, organize, or inspect — then verify progress with an after photo.">
+  <link rel="canonical" href="https://room-rescue-ai-production.up.railway.app/">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Room Rescue">
+  <meta property="og:url" content="https://room-rescue-ai-production.up.railway.app/">
+  <meta property="og:title" content="Room Rescue — Photograph a room. Get a fix-up list.">
+  <meta property="og:description" content="A photo-first checklist for DIY homeowners. See what’s visible, work the list, then check it with an after photo.">
+  <meta property="og:image" content="https://room-rescue-ai-production.up.railway.app/static/og-image.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Room Rescue — Photograph a room. Get a fix-up list.">
+  <meta name="twitter:description" content="A photo-first checklist for DIY homeowners. See what’s visible, work the list, then check it with an after photo.">
+  <meta name="twitter:image" content="https://room-rescue-ai-production.up.railway.app/static/og-image.png">
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="icon" href="/static/favicon-32.png" type="image/png" sizes="32x32">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+  <link rel="manifest" href="/manifest.webmanifest">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,560;9..144,680&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
@@ -35,20 +55,27 @@
         <p>Take one from an angle you can come back to. We’ll list what the picture actually shows — clean, fix, organize, or inspect — with time and supplies.</p>
       </div>
 
-      <div class="photo-block" id="beforeBlock">
+      <ol class="how" aria-label="How it works">
+        <li><span>1</span> Photograph the room</li>
+        <li><span>2</span> Work the checklist</li>
+        <li><span>3</span> Take an after photo</li>
+      </ol>
+
+      <div class="photo-block" id="photo">
         <input id="beforePhoto" type="file" accept="image/*" capture="environment">
-        <label class="dropzone" id="beforeDrop" for="beforePhoto">
+        <label class="dropzone" id="beforeDrop" for="beforePhoto" tabindex="0">
           <span class="dropzone-icon" aria-hidden="true">
             <svg viewBox="0 0 48 48"><rect x="6" y="12" width="36" height="26" rx="2" fill="none" stroke="currentColor" stroke-width="1.75"/><circle cx="18" cy="23" r="4" fill="none" stroke="currentColor" stroke-width="1.75"/><path d="M6 32l10-9 8 7 6-5 12 10" fill="none" stroke="currentColor" stroke-width="1.75"/></svg>
           </span>
           <strong id="beforeUploadLabel">Add a room photo</strong>
-          <span>Camera or files · JPG, PNG, or HEIC</span>
+          <span>Drop a photo, or use the camera · JPG, PNG, or HEIC</span>
         </label>
         <div class="photo-chosen" id="beforeChosen" hidden>
           <img id="beforePreview" alt="Before photo preview">
+          <div class="photo-fallback" id="beforeFallback" hidden aria-hidden="true">Photo</div>
           <div class="photo-chosen-meta">
             <strong id="beforeFileName">Photo selected</strong>
-            <span>Use the same angle later for a progress check.</span>
+            <span id="beforePhotoNote">Use the same angle later for a progress check.</span>
             <label class="text-btn" for="beforePhoto">Change photo</label>
           </div>
         </div>
@@ -78,7 +105,7 @@
             <option value="120">2 hours</option>
           </select>
         </div>
-        <button id="analyze" class="btn primary" disabled>Make a checklist</button>
+        <button type="button" id="analyze" class="btn primary" disabled>Make a checklist</button>
       </div>
 
       <div id="analyzeWait" class="wait" hidden role="status" aria-live="polite">
@@ -86,7 +113,10 @@
         <p id="analyzeWaitText" class="wait-text">Looking at the photo…</p>
         <p class="wait-sub">Usually 10–20 seconds. The list only includes what’s visible.</p>
       </div>
-      <p id="analyzeError" class="error" hidden></p>
+      <div id="analyzeErrorBox" class="error-box" hidden>
+        <p id="analyzeError" class="error"></p>
+        <button type="button" id="analyzeRetry" class="btn ghost">Try again</button>
+      </div>
     </section>
 
     <section class="panel" id="results" hidden aria-labelledby="roomTitle">
@@ -98,6 +128,11 @@
         </div>
         <p id="planMeta" class="plan-meta"></p>
       </header>
+      <div class="plan-actions no-print">
+        <button type="button" id="saveChecklist" class="text-btn as-button">Save checklist</button>
+        <button type="button" id="printChecklist" class="text-btn as-button">Print</button>
+        <button type="button" id="newRoom" class="text-btn as-button">Start a new room</button>
+      </div>
       <div class="progress-line" aria-hidden="true">
         <div id="manualProgressBar"></div>
       </div>
@@ -107,6 +142,7 @@
       </div>
       <div id="cautions"></div>
       <div id="tasks" class="task-list"></div>
+      <p id="emptyTasks" class="empty-state" hidden>No tasks came back from that photo. Try a wider, brighter shot of the same room.</p>
     </section>
 
     <section class="panel" id="afterSection" hidden aria-labelledby="afterHeading">
@@ -117,32 +153,36 @@
 
       <div class="photo-block" id="afterBlock">
         <input id="afterPhoto" type="file" accept="image/*" capture="environment">
-        <label class="dropzone compact" id="afterDrop" for="afterPhoto">
+        <label class="dropzone compact" id="afterDrop" for="afterPhoto" tabindex="0">
           <span class="dropzone-icon" aria-hidden="true">
             <svg viewBox="0 0 48 48"><rect x="6" y="12" width="36" height="26" rx="2" fill="none" stroke="currentColor" stroke-width="1.75"/><circle cx="18" cy="23" r="4" fill="none" stroke="currentColor" stroke-width="1.75"/><path d="M6 32l10-9 8 7 6-5 12 10" fill="none" stroke="currentColor" stroke-width="1.75"/></svg>
           </span>
           <strong id="afterUploadLabel">Add an after photo</strong>
-          <span>Same angle if you can</span>
+          <span>Drop a photo, or use the camera · same angle if you can</span>
         </label>
         <div class="photo-chosen" id="afterChosen" hidden>
           <img id="afterPreview" alt="After photo preview">
+          <div class="photo-fallback" id="afterFallback" hidden aria-hidden="true">Photo</div>
           <div class="photo-chosen-meta">
             <strong id="afterFileName">Photo selected</strong>
-            <span>Hidden areas stay open until a later photo.</span>
+            <span id="afterPhotoNote">Hidden areas stay open until a later photo.</span>
             <label class="text-btn" for="afterPhoto">Change photo</label>
           </div>
         </div>
       </div>
 
       <div class="after-actions">
-        <button id="compare" class="btn" disabled>Compare photos</button>
+        <button type="button" id="compare" class="btn" disabled>Compare photos</button>
       </div>
       <div id="compareWait" class="wait" hidden role="status" aria-live="polite">
         <div class="wait-track"><div id="compareBar" class="wait-bar"></div></div>
         <p id="compareWaitText" class="wait-text">Comparing the two photos…</p>
         <p class="wait-sub">Checking each task against what the new photo can show.</p>
       </div>
-      <p id="compareError" class="error" hidden></p>
+      <div id="compareErrorBox" class="error-box" hidden>
+        <p id="compareError" class="error"></p>
+        <button type="button" id="compareRetry" class="btn ghost">Try again</button>
+      </div>
     </section>
 
     <section class="panel" id="comparison" hidden aria-labelledby="reportHeadline">
@@ -180,7 +220,12 @@
   </main>
 
   <footer class="site-footer">
-    <p>Checked-off progress stays on this device. A task counts as finished when an after photo can show it.</p>
+    <p>Photos aren’t kept on our servers. They’re sent for analysis, then discarded. Progress stays in this browser.</p>
+    <p class="footer-links">
+      <a href="/privacy">Privacy</a>
+      <span aria-hidden="true">·</span>
+      <span>Built for fixing rooms</span>
+    </p>
   </footer>
 
   <script src="/static/app.js"></script>

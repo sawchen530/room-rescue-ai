@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#243028">
+  <title>Privacy — Room Rescue</title>
+  <meta name="description" content="How Room Rescue handles photos and progress. Photos are used to analyze a room, not stored as a product feature.">
+  <link rel="canonical" href="https://room-rescue-ai-production.up.railway.app/privacy">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://room-rescue-ai-production.up.railway.app/privacy">
+  <meta property="og:title" content="Privacy — Room Rescue">
+  <meta property="og:description" content="How Room Rescue handles photos and progress.">
+  <meta property="og:image" content="https://room-rescue-ai-production.up.railway.app/static/og-image.png">
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="icon" href="/static/favicon-32.png" type="image/png" sizes="32x32">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,560;9..144,680&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/app.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="site-header-inner">
+      <a class="mark" href="/" aria-label="Room Rescue home">
+        <svg class="mark-icon" viewBox="0 0 32 32" aria-hidden="true">
+          <path d="M4 15.2 16 5.5l12 9.7v11.3H4V15.2z" fill="none" stroke="currentColor" stroke-width="1.7"/>
+          <path d="M12 26.5v-8h8v8" fill="none" stroke="currentColor" stroke-width="1.7"/>
+        </svg>
+        <span>Room Rescue</span>
+      </a>
+      <p class="tagline">Photograph a room. Get a fix-up list.</p>
+    </div>
+  </header>
+
+  <main>
+    <article class="panel prose">
+      <p class="kicker">Privacy</p>
+      <h1>How we handle your photos</h1>
+      <p>Room Rescue is a small tool for photographing a room and getting a practical checklist. There is no account and no photo library.</p>
+
+      <h2>Photos</h2>
+      <p>When you make a checklist or compare before and after photos, the pictures are sent to our server in memory, then to OpenAI’s vision model so it can describe what is visible. We do not save your photos to disk, and we do not keep them as a product feature. When the request finishes, that upload is gone from our side.</p>
+      <p>OpenAI processes the images under their API terms. Don’t upload photos you would not send to a cloud service.</p>
+
+      <h2>Progress on this device</h2>
+      <p>Checked-off work and a light “rooms finished” summary stay in this browser’s local storage. Clearing site data removes them. Because there is no sign-in, we cannot see that progress from our servers.</p>
+
+      <h2>What we don’t collect</h2>
+      <p>No sign-up, no payments, no mailing list, and no advertising trackers. If something breaks, the server may log an error message so we can fix it. Those logs are not your photos.</p>
+
+      <p><a class="text-btn" href="/">Back to Room Rescue</a></p>
+    </article>
+  </main>
+
+  <footer class="site-footer">
+    <p>Photos aren’t kept on our servers. Built for fixing rooms.</p>
+  </footer>
+</body>
+</html>
