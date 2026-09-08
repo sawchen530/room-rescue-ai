@@ -1,10 +1,13 @@
-const CACHE = "room-rescue-v1";
+const CACHE = "room-rescue-v2";
 const PRECACHE = [
   "/",
   "/privacy",
+  "/terms",
   "/static/app.css",
   "/static/app.js",
   "/static/favicon.svg",
+  "/static/sample-room.jpg",
+  "/static/sample-plan.json",
   "/manifest.webmanifest",
 ];
 

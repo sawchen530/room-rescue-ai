@@ -12,7 +12,9 @@ Built for DIY homeowners. No account, no payments, no photo library.
 2. Room Rescue lists what’s actually visible, with time and ordinary supplies.
 3. Take an after photo from the same spot to check what’s done.
 
-Photos are sent to our server in memory, then to OpenAI’s vision API for analysis. We do not store photos as a product feature. Checkmarks and a light progress summary stay in this browser’s local storage.
+Photos are sent to our server in memory, then to OpenAI’s vision API for analysis. Large JPG/PNG/WebP shots are resized in the browser first so mobile uploads stay small; HEIC is left as-is when the phone format can’t be decoded. We do not store photos as a product feature. Checkmarks and a light progress summary stay in this browser’s local storage.
+
+You can try the product without your own picture via **Use a sample room** (a bundled living-room photo). Privacy notes live at `/privacy`. Short terms — DIY helper, not professional advice — live at `/terms`.
 
 ## Run locally
 

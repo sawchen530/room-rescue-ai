@@ -1,9 +1,11 @@
 import io
+import json
+from pathlib import Path
 
 from fastapi.testclient import TestClient
 
 import app as room_app
-from app import sniff_image_media_type, sniff_magic
+from app import Analysis, sniff_image_media_type, sniff_magic
 
 JPEG = (
     b"\xff\xd8\xff\xe0\x00\x10JFIF\x00\x01\x01\x00\x00\x01\x00\x01\x00\x00"
@@ -41,16 +43,27 @@ def test_sniff_rejects_unknown_bytes():
         raise AssertionError("expected 415")
 
 
-def test_home_and_privacy():
+def test_home_privacy_and_terms():
     response = client().get("/")
     assert response.status_code == 200
     assert "Room Rescue" in response.text
     assert "og:image" in response.text
     assert "room-rescue-ai-production.up.railway.app" in response.text
+    assert "Use a sample room" in response.text
+    assert 'href="/terms"' in response.text
+    assert "Share checklist" in response.text
 
     privacy = client().get("/privacy")
     assert privacy.status_code == 200
     assert "local storage" in privacy.text.lower() or "localStorage" in privacy.text
+
+    terms = client().get("/terms")
+    assert terms.status_code == 200
+    text = terms.text.lower()
+    assert "professional" in text
+    assert "diy" in text
+    assert "wrong" in text
+    assert "safety" in text or "qualified" in text
 
 
 def test_robots_and_sitemap():
@@ -63,6 +76,7 @@ def test_robots_and_sitemap():
     assert sitemap.status_code == 200
     assert "room-rescue-ai-production.up.railway.app" in sitemap.text
     assert "/privacy" in sitemap.text
+    assert "/terms" in sitemap.text
 
 
 def test_docs_are_disabled_by_default():
@@ -239,3 +253,31 @@ def test_compare_success_shape(monkeypatch):
     assert body["completed_percentage"] == 100
     assert body["should_retake"] is False
     assert body["task_results"][0]["status"] == "Completed"
+
+
+def test_sample_room_asset_is_jpeg():
+    raw = Path("static/sample-room.jpg").read_bytes()
+    assert raw[:3] == b"\xff\xd8\xff"
+    served = client().get("/static/sample-room.jpg")
+    assert served.status_code == 200
+    assert served.headers["content-type"].startswith("image/jpeg")
+
+
+def test_sample_plan_matches_analysis_shape():
+    payload = json.loads(Path("static/sample-plan.json").read_text())
+    analysis = Analysis.model_validate(payload)
+    assert 5 <= len(analysis.tasks) <= 12
+    assert analysis.room_type
+    assert analysis.cautions
+
+    served = client().get("/static/sample-plan.json")
+    assert served.status_code == 200
+    assert served.json()["room_type"] == analysis.room_type
+
+
+def test_frontend_compresses_before_upload():
+    script = Path("static/app.js").read_text()
+    assert "prepareUpload" in script
+    assert "MAX_UPLOAD_EDGE" in script
+    assert "heic" in script.lower()
+    assert "sample-room.jpg" in script

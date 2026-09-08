@@ -81,6 +81,11 @@
         </div>
       </div>
 
+      <p class="sample-row" id="sampleRow">
+        <button type="button" id="useSample" class="text-btn as-button">Use a sample room</button>
+        <span>See a checklist in one tap — no photo of yours required.</span>
+      </p>
+
       <div class="start-controls">
         <div class="field">
           <label for="room">Room</label>
@@ -128,8 +133,10 @@
         </div>
         <p id="planMeta" class="plan-meta"></p>
       </header>
+      <p id="sampleBanner" class="sample-banner" hidden></p>
       <div class="plan-actions no-print">
         <button type="button" id="saveChecklist" class="text-btn as-button">Save checklist</button>
+        <button type="button" id="shareChecklist" class="text-btn as-button">Share checklist</button>
         <button type="button" id="printChecklist" class="text-btn as-button">Print</button>
         <button type="button" id="newRoom" class="text-btn as-button">Start a new room</button>
       </div>
@@ -143,12 +150,13 @@
       <div id="cautions"></div>
       <div id="tasks" class="task-list"></div>
       <p id="emptyTasks" class="empty-state" hidden>No tasks came back from that photo. Try a wider, brighter shot of the same room.</p>
+      <p id="afterPlanCta" class="next-cta" hidden>When you’ve done a few items, <a href="#afterBlock">take an after photo</a> from the same spot to check what’s done.</p>
     </section>
 
     <section class="panel" id="afterSection" hidden aria-labelledby="afterHeading">
       <div class="panel-intro">
         <h2 id="afterHeading">Check the work</h2>
-        <p>Take another photo from roughly the same spot. We’ll only mark a task done if the new picture can show it.</p>
+        <p id="afterHint">Take another photo from roughly the same spot. We’ll only mark a task done if the new picture can show it.</p>
       </div>
 
       <div class="photo-block" id="afterBlock">
@@ -223,6 +231,8 @@
     <p>Photos aren’t kept on our servers. They’re sent for analysis, then discarded. Progress stays in this browser.</p>
     <p class="footer-links">
       <a href="/privacy">Privacy</a>
+      <span aria-hidden="true">·</span>
+      <a href="/terms">Terms</a>
       <span aria-hidden="true">·</span>
       <span>Built for fixing rooms</span>
     </p>

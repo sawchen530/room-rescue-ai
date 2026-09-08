@@ -6,6 +6,11 @@
   const analyzeBtn = $("analyze");
   const compareBtn = $("compare");
   const REQUEST_TIMEOUT_MS = 95000;
+  const MAX_UPLOAD_EDGE = 1920;
+  const JPEG_QUALITY = 0.82;
+  const SKIP_JPEG_BYTES = 700 * 1024;
+  const SAMPLE_SRC = "/static/sample-room.jpg";
+  const SAMPLE_NAME = "sample-living-room.jpg";
 
   const ANALYZE_STEPS = [
     "Looking at the photo…",
@@ -24,8 +29,22 @@
 
   const STORE_KEY = "roomRescueWork";
 
+  const SAMPLE_PLAN_SRC = "/static/sample-plan.json";
+  let samplePlanCache = null;
+
+  async function loadSamplePlan() {
+    if (samplePlanCache) return samplePlanCache;
+    const response = await fetch(SAMPLE_PLAN_SRC);
+    if (!response.ok) throw new Error("Couldn’t load the sample checklist.");
+    samplePlanCache = await response.json();
+    return samplePlanCache;
+  }
+
   let analysisData = null;
   let taskState = [];
+  let usedSample = false;
+  const beforeJob = { source: null, promise: null };
+  const afterJob = { source: null, promise: null };
 
   function loadWork() {
     try {
@@ -147,6 +166,108 @@
     }
   }
 
+  function isHeicLike(file) {
+    return /image\/hei[cf]/i.test(file.type || "") || /\.hei[cf]$/i.test(file.name || "");
+  }
+
+  function jpegName(name) {
+    const base = String(name || "room-photo").replace(/\.[^.]+$/, "");
+    return `${base || "room-photo"}.jpg`;
+  }
+
+  function closeDecoded(image) {
+    if (image && typeof image.close === "function") image.close();
+  }
+
+  async function decodePhoto(file) {
+    if (typeof createImageBitmap === "function") {
+      try {
+        return await createImageBitmap(file, { imageOrientation: "from-image" });
+      } catch {
+        /* Safari/HEIC and some Androids fail here; try an <img> next. */
+      }
+    }
+    const url = URL.createObjectURL(file);
+    try {
+      const image = await new Promise((resolve, reject) => {
+        const img = new Image();
+        img.onload = () => resolve(img);
+        img.onerror = () => reject(new Error("decode"));
+        img.src = url;
+      });
+      return image;
+    } finally {
+      URL.revokeObjectURL(url);
+    }
+  }
+
+  function canvasToJpeg(canvas) {
+    return new Promise((resolve, reject) => {
+      canvas.toBlob(
+        (blob) => (blob ? resolve(blob) : reject(new Error("compress"))),
+        "image/jpeg",
+        JPEG_QUALITY,
+      );
+    });
+  }
+
+  async function prepareUpload(file) {
+    if (!file) return { file, compressed: false };
+    try {
+      const decoded = await decodePhoto(file);
+      const width = decoded.width;
+      const height = decoded.height;
+      const maxDim = Math.max(width, height);
+      const alreadySmallJpeg =
+        file.type === "image/jpeg" && file.size <= SKIP_JPEG_BYTES && maxDim <= MAX_UPLOAD_EDGE;
+
+      if (alreadySmallJpeg) {
+        closeDecoded(decoded);
+        return { file, compressed: false };
+      }
+
+      const scale = maxDim > MAX_UPLOAD_EDGE ? MAX_UPLOAD_EDGE / maxDim : 1;
+      const targetW = Math.max(1, Math.round(width * scale));
+      const targetH = Math.max(1, Math.round(height * scale));
+      const canvas = document.createElement("canvas");
+      canvas.width = targetW;
+      canvas.height = targetH;
+      const ctx = canvas.getContext("2d", { alpha: false });
+      if (!ctx) {
+        closeDecoded(decoded);
+        return { file, compressed: false };
+      }
+      ctx.drawImage(decoded, 0, 0, targetW, targetH);
+      closeDecoded(decoded);
+
+      const blob = await canvasToJpeg(canvas);
+      if (blob.size >= file.size && !isHeicLike(file) && file.type !== "image/png") {
+        return { file, compressed: false };
+      }
+      const prepared = new File([blob], jpegName(file.name), {
+        type: "image/jpeg",
+        lastModified: Date.now(),
+      });
+      return { file: prepared, compressed: true };
+    } catch {
+      return { file, compressed: false, heicUnchanged: isHeicLike(file) };
+    }
+  }
+
+  function queuePrepare(input, job) {
+    const file = input.files?.[0] || null;
+    job.source = file;
+    job.promise = file ? prepareUpload(file) : null;
+    return job.promise;
+  }
+
+  async function getPrepared(input, job) {
+    const file = input.files?.[0];
+    if (!file) return null;
+    if (job.source === file && job.promise) return job.promise;
+    return queuePrepare(input, job);
+  }
+
   function bindDropzone(drop, input) {
     ["dragenter", "dragover"].forEach((type) => {
       drop.addEventListener(type, (event) => {
@@ -178,7 +299,14 @@
     });
   }
 
-  function showPhoto(input, chosenId, dropId, nameId, previewId, fallbackId, noteId, readyNote) {
+  function assignFile(input, file) {
+    const transfer = new DataTransfer();
+    transfer.items.add(file);
+    input.files = transfer.files;
+    input.dispatchEvent(new Event("change", { bubbles: true }));
+  }
+
+  function showPhoto(input, chosenId, dropId, nameId, previewId, fallbackId, noteId, readyNote, job) {
     const file = input.files?.[0];
     if (!file) return;
     const preview = $(previewId);
@@ -206,6 +334,14 @@
     $(nameId).textContent = file.name || "Photo selected";
     $(dropId).hidden = true;
     $(chosenId).hidden = false;
+
+    const prepare = queuePrepare(input, job);
+    prepare.then((result) => {
+      if (input.files?.[0] !== file) return;
+      if (result?.compressed) {
+        note.textContent = "Resized for a faster upload. " + readyNote;
+      }
+    });
   }
 
   function createWaiter(barId, textId, steps) {
@@ -253,10 +389,19 @@
     return "open";
   }
 
+  function renderCautions(items) {
+    if (!items?.length) return "";
+    return `<div class="caution" role="note">
+      <p class="caution-title">Before you start</p>
+      <ul>${items.map((item) => `<li>${esc(item)}</li>`).join("")}</ul>
+    </div>`;
+  }
+
   function renderTasks() {
     const root = $("tasks");
     root.innerHTML = "";
     $("emptyTasks").hidden = taskState.length > 0;
+    $("afterPlanCta").hidden = taskState.length === 0 || !$("comparison").hidden;
     taskState.forEach((task, index) => {
       const row = document.createElement("article");
       row.className = "task" + (task.done ? " done" : "");
@@ -327,6 +472,7 @@
       lines.push("");
     });
     lines.push("_Saved from Room Rescue. Photos aren’t kept on our servers._", "");
+    lines.push("https://room-rescue-ai-production.up.railway.app/", "");
     return lines.join("\n");
   }
 
@@ -344,9 +490,69 @@
     URL.revokeObjectURL(url);
   }
 
+  async function shareChecklist() {
+    if (!analysisData) return;
+    const text = checklistMarkdown();
+    const title = `${analysisData.room_type || "Room"} checklist — Room Rescue`;
+    const url = "https://room-rescue-ai-production.up.railway.app/";
+    const button = $("shareChecklist");
+    if (navigator.share) {
+      try {
+        await navigator.share({ title, text, url });
+        return;
+      } catch (error) {
+        if (error?.name === "AbortError") return;
+      }
+    }
+    try {
+      await navigator.clipboard.writeText(`${title}\n\n${text}`);
+      button.textContent = "Copied";
+      setTimeout(() => {
+        button.textContent = "Share checklist";
+      }, 1600);
+    } catch {
+      button.textContent = "Couldn’t copy";
+      setTimeout(() => {
+        button.textContent = "Share checklist";
+      }, 1600);
+    }
+  }
+
+  function applyAnalysis(data, { sample = false, canned = false } = {}) {
+    analysisData = data;
+    usedSample = sample;
+    taskState = (data.tasks || []).map((task) => ({ ...task, done: false, compare: null }));
+    $("roomTitle").textContent = data.room_type;
+    $("summary").textContent = data.summary;
+    $("planMeta").textContent = `${taskState.length} tasks · about ${data.estimated_total_minutes} min`;
+    $("cautions").innerHTML = renderCautions(data.cautions);
+    const banner = $("sampleBanner");
+    if (sample) {
+      banner.hidden = false;
+      banner.textContent = canned
+        ? "Sample walkthrough of a living room — a typical first-session list. Your own photo will be judged from what’s actually visible."
+        : "This list is from our sample living room. Use your own photo when you’re ready to work a real space.";
+    } else {
+      banner.hidden = true;
+      banner.textContent = "";
+    }
+    $("afterHint").textContent = sample
+      ? "Progress check works best with your own before and after from the same spot."
+      : "Take another photo from roughly the same spot. We’ll only mark a task done if the new picture can show it.";
+    $("startPanel").classList.add("has-plan");
+    $("startHeading").textContent = "Before photo";
+    $("sampleRow").hidden = true;
+    renderTasks();
+    $("results").hidden = false;
+    $("afterSection").hidden = false;
+    $("comparison").hidden = true;
+    $("afterPlanCta").hidden = taskState.length === 0;
+  }
+
   function resetRoom() {
     analysisData = null;
     taskState = [];
+    usedSample = false;
     $("startPanel").classList.remove("has-plan");
     $("startHeading").textContent = "Start with a photo";
     $("results").hidden = true;
@@ -355,7 +561,12 @@
     $("finishedNote").hidden = true;
     delete $("finishedNote").dataset.counted;
     $("emptyTasks").hidden = true;
+    $("afterPlanCta").hidden = true;
+    $("sampleBanner").hidden = true;
+    $("sampleRow").hidden = Boolean(beforePhoto.files?.[0]);
     $("tasks").innerHTML = "";
+    $("afterHint").textContent =
+      "Take another photo from roughly the same spot. We’ll only mark a task done if the new picture can show it.";
     compareBtn.disabled = true;
     $("photo").scrollIntoView({ behavior: "smooth", block: "start" });
   }
@@ -369,6 +580,7 @@
   bindDropzone($("afterDrop"), afterPhoto);
 
   beforePhoto.addEventListener("change", () => {
+    usedSample = /\bsample-living-room\.jpg$/i.test(beforePhoto.files?.[0]?.name || "");
     showPhoto(
       beforePhoto,
       "beforeChosen",
@@ -377,8 +589,10 @@
       "beforePreview",
       "beforeFallback",
       "beforePhotoNote",
-      "Use the same angle later for a progress check."
+      "Use the same angle later for a progress check.",
+      beforeJob,
     );
+    $("sampleRow").hidden = Boolean(beforePhoto.files?.[0]);
     syncButtons();
   });
 
@@ -391,47 +605,50 @@
       "afterPreview",
       "afterFallback",
       "afterPhotoNote",
-      "Hidden areas stay open until a later photo."
+      "Hidden areas stay open until a later photo.",
+      afterJob,
     );
     syncButtons();
   });
 
-  async function runAnalyze() {
+  async function runAnalyze({ allowDemoFallback = false } = {}) {
     const file = beforePhoto.files?.[0];
     if (!file) return;
 
     analyzeBtn.disabled = true;
+    $("useSample").disabled = true;
     setError("analyzeErrorBox", "analyzeError", "");
     $("analyzeWait").hidden = false;
-    analyzeWait.start();
-
-    const body = new FormData();
-    body.append("image", file);
-    body.append("room_hint", $("room").value);
-    body.append("time_budget", $("budget").value);
+    $("analyzeWaitText").textContent = "Preparing photo…";
 
     try {
+      const prepared = await getPrepared(beforePhoto, beforeJob);
+      const upload = prepared?.file || file;
+      analyzeWait.start();
+
+      const body = new FormData();
+      body.append("image", upload, upload.name || file.name);
+      body.append("room_hint", $("room").value);
+      body.append("time_budget", $("budget").value);
+
       const data = await postForm("/api/analyze", body);
-      analysisData = data;
-      taskState = (data.tasks || []).map((task) => ({ ...task, done: false, compare: null }));
-      $("roomTitle").textContent = data.room_type;
-      $("summary").textContent = data.summary;
-      $("planMeta").textContent = `${taskState.length} tasks · about ${data.estimated_total_minutes} min`;
-      $("cautions").innerHTML = data.cautions?.length
-        ? `<div class="caution"><b>Before you start</b>${data.cautions.map((item) => `<p>${esc(item)}</p>`).join("")}</div>`
-        : "";
-      $("startPanel").classList.add("has-plan");
-      $("startHeading").textContent = "Before photo";
-      renderTasks();
-      $("results").hidden = false;
-      $("afterSection").hidden = false;
-      $("comparison").hidden = true;
+      applyAnalysis(data, { sample: allowDemoFallback || usedSample });
       $("results").scrollIntoView({ behavior: "smooth", block: "start" });
     } catch (error) {
-      setError("analyzeErrorBox", "analyzeError", friendlyNetworkError(error));
+      if (allowDemoFallback) {
+        try {
+          applyAnalysis(await loadSamplePlan(), { sample: true, canned: true });
+          $("results").scrollIntoView({ behavior: "smooth", block: "start" });
+        } catch {
+          setError("analyzeErrorBox", "analyzeError", friendlyNetworkError(error));
+        }
+      } else {
+        setError("analyzeErrorBox", "analyzeError", friendlyNetworkError(error));
+      }
     } finally {
       analyzeWait.stop();
       $("analyzeWait").hidden = true;
+      $("useSample").disabled = false;
       syncButtons();
     }
   }
@@ -444,15 +661,23 @@
     compareBtn.disabled = true;
     setError("compareErrorBox", "compareError", "");
     $("compareWait").hidden = false;
-    compareWait.start();
-
-    const body = new FormData();
-    body.append("before_image", before);
-    body.append("after_image", after);
-    body.append("room_type", analysisData.room_type || "room");
-    body.append("tasks_json", JSON.stringify(analysisData.tasks));
+    $("compareWaitText").textContent = "Preparing photos…";
 
     try {
+      const [preparedBefore, preparedAfter] = await Promise.all([
+        getPrepared(beforePhoto, beforeJob),
+        getPrepared(afterPhoto, afterJob),
+      ]);
+      compareWait.start();
+
+      const body = new FormData();
+      const beforeUpload = preparedBefore?.file || before;
+      const afterUpload = preparedAfter?.file || after;
+      body.append("before_image", beforeUpload, beforeUpload.name || before.name);
+      body.append("after_image", afterUpload, afterUpload.name || after.name);
+      body.append("room_type", analysisData.room_type || "room");
+      body.append("tasks_json", JSON.stringify(analysisData.tasks));
+
       const data = await postForm("/api/compare", body);
       const byTitle = new Map(data.task_results.map((item) => [item.title.trim().toLowerCase(), item]));
       let newlyVerified = 0;
@@ -472,8 +697,8 @@
       recordVerifiedWork(newlyVerified, finished && !alreadyCounted);
       if (finished) $("finishedNote").dataset.counted = "1";
 
-      renderTasks();
       $("comparison").hidden = false;
+      renderTasks();
       $("compareSummary").textContent = data.summary;
       $("kpiPercent").textContent = `${data.completed_percentage}%`;
       $("kpiDone").textContent = data.completed_tasks;
@@ -501,13 +726,41 @@
     }
   }
 
-  analyzeBtn.addEventListener("click", runAnalyze);
+  async function useSampleRoom() {
+    const button = $("useSample");
+    button.disabled = true;
+    setError("analyzeErrorBox", "analyzeError", "");
+    try {
+      const response = await fetch(SAMPLE_SRC);
+      if (!response.ok) throw new Error("Couldn’t load the sample room. Please try again.");
+      const blob = await response.blob();
+      const file = new File([blob], SAMPLE_NAME, { type: "image/jpeg" });
+      $("room").value = "Living room";
+      usedSample = true;
+      assignFile(beforePhoto, file);
+      await runAnalyze({ allowDemoFallback: true });
+    } catch {
+      try {
+        applyAnalysis(await loadSamplePlan(), { sample: true, canned: true });
+        $("results").scrollIntoView({ behavior: "smooth", block: "start" });
+      } catch (fallbackError) {
+        setError("analyzeErrorBox", "analyzeError", friendlyNetworkError(fallbackError));
+      }
+    } finally {
+      button.disabled = false;
+      syncButtons();
+    }
+  }
+
+  analyzeBtn.addEventListener("click", () => runAnalyze());
   compareBtn.addEventListener("click", runCompare);
-  $("analyzeRetry").addEventListener("click", runAnalyze);
+  $("analyzeRetry").addEventListener("click", () => runAnalyze({ allowDemoFallback: usedSample }));
   $("compareRetry").addEventListener("click", runCompare);
   $("saveChecklist").addEventListener("click", saveChecklist);
+  $("shareChecklist").addEventListener("click", shareChecklist);
   $("printChecklist").addEventListener("click", () => window.print());
   $("newRoom").addEventListener("click", resetRoom);
+  $("useSample").addEventListener("click", useSampleRoom);
 
   if ("serviceWorker" in navigator) {
     window.addEventListener("load", () => {
