@@ -1,0 +1,7 @@
+{
+  "appId": "com.roomrescue.app",
+  "appName": "Room Rescue",
+  "version": "1.0.0",
+  "versionCode": 1,
+  "productionUrl": "https://room-rescue-ai-production.up.railway.app"
+}
