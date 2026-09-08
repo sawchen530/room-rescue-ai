@@ -16,7 +16,7 @@ Photos are sent to our server in memory, then to OpenAI’s vision API for analy
 
 You can try the product without your own picture via **Use a sample room** (a bundled living-room photo). Privacy notes live at `/privacy`. Short terms — DIY helper, not professional advice — live at `/terms`.
 
-Native iOS/Android packaging is a Capacitor shell around this same site. **It is not on the App Store or Play Store yet.** See [STORE.md](STORE.md) and [docs/app-store-checklist.md](docs/app-store-checklist.md).
+Native iOS/Android packaging is a Capacitor shell around this same site. **It is not on the App Store or Play Store yet.** See [STORE.md](STORE.md), paste-ready listing copy in [docs/store-listing.md](docs/store-listing.md), framed screenshots in [docs/store-assets/](docs/store-assets/), and [docs/app-store-checklist.md](docs/app-store-checklist.md).
 
 ## Run locally (web)
 
