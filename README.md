@@ -75,8 +75,8 @@ npm install
 npx cap sync
 ```
 
-- **iOS:** needs a Mac. `npx cap open ios` then archive in Xcode. Linux cannot sign or upload an App Store build. The `native/ios/` folder is still in git so you do not regenerate it from scratch.
-- **Android:** `npx cap open android` in Android Studio. An AAB can be built on Linux or a Mac once a Play upload key exists.
+- **iOS:** GitHub Actions on `macos-latest` archives when Apple signing secrets are set. Jeff does not need a personal Mac. See [STORE.md](STORE.md).
+- **Android:** Ubuntu CI builds an AAB when a Play keystore secret exists; `npx cap open android` is optional.
 - **Talk to local FastAPI** (phone and computer on one network — use the computer’s LAN IP):
 
 ```bash
@@ -86,7 +86,7 @@ CAPACITOR_SERVER_URL=http://192.168.1.20:8000 npx cap sync
 
 iOS Simulator: `http://127.0.0.1:8000`. Android Emulator: `http://10.0.2.2:8000`.
 
-Accounts, signing, screenshots, and clicking Submit are **only Jeff** — listed in [STORE.md](STORE.md).
+Accounts, signing secrets, real-device screenshots, and clicking Submit are **only Jeff** — listed in [STORE.md](STORE.md). A personal Mac is not required.
 
 ## Privacy and terms
 

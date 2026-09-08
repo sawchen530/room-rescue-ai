@@ -1,0 +1,401 @@
+# Native store builds — cloud Mac for iOS, Ubuntu for Play AAB.
+#
+# Jeff does not need a personal Mac. This workflow replaces "open Xcode on a Mac".
+# It does NOT submit the app for review. Do not store real secrets in git.
+#
+# Required GitHub Actions secrets (Settings → Secrets and variables → Actions):
+#
+#   iOS archive (bundle id com.roomrescue.app) — all four required to archive:
+#     APPLE_DISTRIBUTION_CERTIFICATE_P12_BASE64
+#     APPLE_DISTRIBUTION_CERTIFICATE_PASSWORD
+#     APPLE_PROVISIONING_PROFILE_BASE64
+#     APPLE_TEAM_ID
+#
+#   iOS upload (optional App Store Connect API key — upload a build, still not Submit):
+#     APP_STORE_CONNECT_API_KEY_ID
+#     APP_STORE_CONNECT_API_ISSUER_ID
+#     APP_STORE_CONNECT_API_KEY_P8
+#
+#   Android AAB (skip cleanly if ANDROID_KEYSTORE_BASE64 is unset):
+#     ANDROID_KEYSTORE_BASE64
+#     ANDROID_KEYSTORE_PASSWORD
+#     ANDROID_KEY_ALIAS
+#     ANDROID_KEY_PASSWORD   (optional; defaults to ANDROID_KEYSTORE_PASSWORD)
+#
+# See STORE.md.
+
+name: Native store builds
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "native/**"
+      - ".github/workflows/native-store.yml"
+      - "STORE.md"
+      - "tests/**"
+  pull_request:
+    paths:
+      - "native/**"
+      - ".github/workflows/native-store.yml"
+      - "STORE.md"
+      - "tests/**"
+
+permissions:
+  contents: read
+  actions: write
+
+concurrency:
+  group: native-store-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  repo-tests:
+    name: Repo tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install test deps
+        run: pip install pytest fastapi uvicorn python-multipart python-dotenv openai pydantic
+      - name: pytest
+        run: python -m pytest tests/ -q
+
+  ios:
+    name: iOS archive (macos-latest)
+    runs-on: macos-latest
+    timeout-minutes: 60
+    defaults:
+      run:
+        working-directory: native
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: native/package-lock.json
+
+      - name: npm ci
+        run: npm ci
+
+      - name: npx cap sync
+        run: npx cap sync
+
+      - name: Check Apple signing secrets
+        id: apple
+        env:
+          APPLE_DISTRIBUTION_CERTIFICATE_P12_BASE64: ${{ secrets.APPLE_DISTRIBUTION_CERTIFICATE_P12_BASE64 }}
+          APPLE_DISTRIBUTION_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_DISTRIBUTION_CERTIFICATE_PASSWORD }}
+          APPLE_PROVISIONING_PROFILE_BASE64: ${{ secrets.APPLE_PROVISIONING_PROFILE_BASE64 }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          APP_STORE_CONNECT_API_KEY_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_ID }}
+          APP_STORE_CONNECT_API_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_API_ISSUER_ID }}
+          APP_STORE_CONNECT_API_KEY_P8: ${{ secrets.APP_STORE_CONNECT_API_KEY_P8 }}
+        run: |
+          set -euo pipefail
+          missing=()
+          [ -z "${APPLE_DISTRIBUTION_CERTIFICATE_P12_BASE64:-}" ] && missing+=("APPLE_DISTRIBUTION_CERTIFICATE_P12_BASE64")
+          [ -z "${APPLE_DISTRIBUTION_CERTIFICATE_PASSWORD:-}" ] && missing+=("APPLE_DISTRIBUTION_CERTIFICATE_PASSWORD")
+          [ -z "${APPLE_PROVISIONING_PROFILE_BASE64:-}" ] && missing+=("APPLE_PROVISIONING_PROFILE_BASE64")
+          [ -z "${APPLE_TEAM_ID:-}" ] && missing+=("APPLE_TEAM_ID")
+
+          if [ ${#missing[@]} -gt 0 ]; then
+            {
+              echo "## iOS archive did not run"
+              echo
+              echo "npm ci and npx cap sync finished on the cloud Mac. Archive did **not** run."
+              echo
+              echo "Missing GitHub Actions secrets:"
+              for name in "${missing[@]}"; do
+                echo "- \`$name\`"
+              done
+              echo
+              echo "This is **not** a successful App Store build. The app is **not submitted**."
+              echo "Jeff does not need a personal Mac. Add the secrets in STORE.md and re-run this workflow."
+            } >> "$GITHUB_STEP_SUMMARY"
+            echo "::error::iOS archive skipped/failed — missing secrets: ${missing[*]}. This is not a successful store build. The app is not submitted. See STORE.md."
+            # Fail so a green check does not pretend the archive succeeded.
+            exit 1
+          fi
+
+          echo "ready=true" >> "$GITHUB_OUTPUT"
+
+          if [ -n "${APP_STORE_CONNECT_API_KEY_P8:-}" ] && [ -n "${APP_STORE_CONNECT_API_KEY_ID:-}" ] && [ -n "${APP_STORE_CONNECT_API_ISSUER_ID:-}" ]; then
+            echo "upload=true" >> "$GITHUB_OUTPUT"
+            echo "App Store Connect API key is present; IPA will be uploaded as a build (not submitted for review)."
+          else
+            echo "upload=false" >> "$GITHUB_OUTPUT"
+            echo "App Store Connect API key is incomplete; IPA will be exported as a GitHub artifact only (not uploaded, not submitted)."
+          fi
+
+      - name: Import distribution certificate and provisioning profile
+        env:
+          APPLE_DISTRIBUTION_CERTIFICATE_P12_BASE64: ${{ secrets.APPLE_DISTRIBUTION_CERTIFICATE_P12_BASE64 }}
+          APPLE_DISTRIBUTION_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_DISTRIBUTION_CERTIFICATE_PASSWORD }}
+          APPLE_PROVISIONING_PROFILE_BASE64: ${{ secrets.APPLE_PROVISIONING_PROFILE_BASE64 }}
+        run: |
+          set -euo pipefail
+          export CERT_PATH="$RUNNER_TEMP/dist.p12"
+          export PROFILE_PATH="$RUNNER_TEMP/app.mobileprovision"
+          python3 - <<'PY'
+          import base64, os, pathlib
+          pathlib.Path(os.environ["CERT_PATH"]).write_bytes(
+              base64.b64decode(os.environ["APPLE_DISTRIBUTION_CERTIFICATE_P12_BASE64"])
+          )
+          pathlib.Path(os.environ["PROFILE_PATH"]).write_bytes(
+              base64.b64decode(os.environ["APPLE_PROVISIONING_PROFILE_BASE64"])
+          )
+          PY
+          KEYCHAIN_PATH="$RUNNER_TEMP/ios-signing.keychain-db"
+          KEYCHAIN_PASSWORD="$(openssl rand -base64 32)"
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security import "$CERT_PATH" -P "$APPLE_DISTRIBUTION_CERTIFICATE_PASSWORD" -A -t cert -f pkcs12 -k "$KEYCHAIN_PATH"
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security list-keychains -d user -s "$KEYCHAIN_PATH"
+          security default-keychain -s "$KEYCHAIN_PATH"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+
+          mkdir -p "$HOME/Library/MobileDevice/Provisioning Profiles"
+          security cms -D -i "$PROFILE_PATH" > "$RUNNER_TEMP/profile.plist"
+          PROFILE_UUID="$(/usr/libexec/PlistBuddy -c 'Print :UUID' "$RUNNER_TEMP/profile.plist")"
+          PROFILE_NAME="$(/usr/libexec/PlistBuddy -c 'Print :Name' "$RUNNER_TEMP/profile.plist")"
+          APP_ID="$(/usr/libexec/PlistBuddy -c 'Print :Entitlements:application-identifier' "$RUNNER_TEMP/profile.plist")"
+          case "$APP_ID" in
+            *.com.roomrescue.app) ;;
+            *)
+              echo "::error::Provisioning profile application-identifier is '$APP_ID', expected TeamID.com.roomrescue.app"
+              exit 1
+              ;;
+          esac
+          cp "$PROFILE_PATH" "$HOME/Library/MobileDevice/Provisioning Profiles/${PROFILE_UUID}.mobileprovision"
+          echo "PROFILE_UUID=$PROFILE_UUID" >> "$GITHUB_ENV"
+          echo "PROFILE_NAME=$PROFILE_NAME" >> "$GITHUB_ENV"
+          rm -f "$CERT_PATH"
+
+      - name: Archive iOS app
+        env:
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          set -euo pipefail
+          xcodebuild -version
+          xcodebuild \
+            -project ios/App/App.xcodeproj \
+            -scheme App \
+            -configuration Release \
+            -destination "generic/platform=iOS" \
+            -archivePath "$RUNNER_TEMP/RoomRescue.xcarchive" \
+            DEVELOPMENT_TEAM="$APPLE_TEAM_ID" \
+            CODE_SIGN_STYLE=Manual \
+            CODE_SIGN_IDENTITY="Apple Distribution" \
+            PROVISIONING_PROFILE="$PROFILE_UUID" \
+            PROVISIONING_PROFILE_SPECIFIER="$PROFILE_NAME" \
+            PRODUCT_BUNDLE_IDENTIFIER=com.roomrescue.app \
+            archive
+
+      - name: Export IPA
+        env:
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          set -euo pipefail
+          EXPORT_DIR="$RUNNER_TEMP/export"
+          mkdir -p "$EXPORT_DIR"
+          python3 - <<'PY'
+          import os, pathlib, xml.sax.saxutils
+          team = os.environ["APPLE_TEAM_ID"]
+          profile = os.environ["PROFILE_NAME"]
+          plist = f"""<?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+            <key>method</key>
+            <string>app-store-connect</string>
+            <key>destination</key>
+            <string>export</string>
+            <key>signingStyle</key>
+            <string>manual</string>
+            <key>teamID</key>
+            <string>{xml.sax.saxutils.escape(team)}</string>
+            <key>signingCertificate</key>
+            <string>Apple Distribution</string>
+            <key>provisioningProfiles</key>
+            <dict>
+              <key>com.roomrescue.app</key>
+              <string>{xml.sax.saxutils.escape(profile)}</string>
+            </dict>
+          </dict>
+          </plist>
+          """
+          pathlib.Path(os.environ["RUNNER_TEMP"], "ExportOptions.plist").write_text(plist)
+          PY
+          xcodebuild \
+            -exportArchive \
+            -archivePath "$RUNNER_TEMP/RoomRescue.xcarchive" \
+            -exportPath "$EXPORT_DIR" \
+            -exportOptionsPlist "$RUNNER_TEMP/ExportOptions.plist"
+          ls -la "$EXPORT_DIR"
+          test -n "$(find "$EXPORT_DIR" -name '*.ipa' | head -n 1)"
+
+      - name: Upload IPA artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-ipa
+          path: ${{ runner.temp }}/export/*.ipa
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Upload IPA to App Store Connect (build only, not Submit)
+        if: steps.apple.outputs.upload == 'true'
+        env:
+          APP_STORE_CONNECT_API_KEY_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_ID }}
+          APP_STORE_CONNECT_API_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_API_ISSUER_ID }}
+          APP_STORE_CONNECT_API_KEY_P8: ${{ secrets.APP_STORE_CONNECT_API_KEY_P8 }}
+        run: |
+          set -euo pipefail
+          IPA="$(find "$RUNNER_TEMP/export" -name '*.ipa' | head -n 1)"
+          export KEY_DIR="$HOME/.appstoreconnect/private_keys"
+          mkdir -p "$KEY_DIR"
+          python3 - <<'PY'
+          import os, pathlib
+          key_id = os.environ["APP_STORE_CONNECT_API_KEY_ID"]
+          path = pathlib.Path(os.environ["KEY_DIR"]) / f"AuthKey_{key_id}.p8"
+          path.write_text(os.environ["APP_STORE_CONNECT_API_KEY_P8"])
+          path.chmod(0o600)
+          PY
+          xcrun altool --upload-app --type ios \
+            --file "$IPA" \
+            --apiKey "$APP_STORE_CONNECT_API_KEY_ID" \
+            --apiIssuer "$APP_STORE_CONNECT_API_ISSUER_ID"
+          echo "Uploaded a build to App Store Connect. The app is **not submitted** for review." >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Record archive success
+        if: success() && steps.apple.outputs.ready == 'true'
+        run: |
+          {
+            echo "## iOS archive produced"
+            echo
+            echo "IPA artifact attached. The app is **not submitted** for review."
+            if [ "${{ steps.apple.outputs.upload }}" = "true" ]; then
+              echo "An App Store Connect API key was present, so the build was uploaded (still not Submit)."
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  android-aab:
+    name: Android AAB (ubuntu)
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Check Play keystore secret
+        id: keystore
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+        run: |
+          set -euo pipefail
+          if [ -z "${ANDROID_KEYSTORE_BASE64:-}" ]; then
+            echo "present=false" >> "$GITHUB_OUTPUT"
+            {
+              echo "## Android AAB skipped"
+              echo
+              echo "\`ANDROID_KEYSTORE_BASE64\` is not set. No Play upload artifact was produced."
+              echo "This is **not** a Play submission. See STORE.md for the keystore secrets."
+            } >> "$GITHUB_STEP_SUMMARY"
+            echo "::notice::Skipping Android AAB — no keystore secret. Not a Play upload. App not submitted."
+            exit 0
+          fi
+          missing=()
+          [ -z "${ANDROID_KEYSTORE_PASSWORD:-}" ] && missing+=("ANDROID_KEYSTORE_PASSWORD")
+          [ -z "${ANDROID_KEY_ALIAS:-}" ] && missing+=("ANDROID_KEY_ALIAS")
+          if [ ${#missing[@]} -gt 0 ]; then
+            echo "::error::ANDROID_KEYSTORE_BASE64 is set but incomplete (${missing[*]}). Not a Play upload."
+            exit 1
+          fi
+          echo "present=true" >> "$GITHUB_OUTPUT"
+
+      - name: Checkout
+        if: steps.keystore.outputs.present == 'true'
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        if: steps.keystore.outputs.present == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: native/package-lock.json
+
+      - name: npm ci
+        if: steps.keystore.outputs.present == 'true'
+        working-directory: native
+        run: npm ci
+
+      - name: npx cap sync
+        if: steps.keystore.outputs.present == 'true'
+        working-directory: native
+        run: npx cap sync android
+
+      - name: Setup Java
+        if: steps.keystore.outputs.present == 'true'
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: gradle
+          cache-dependency-path: native/android/**/*.gradle*
+
+      - name: Decode upload keystore and build AAB
+        if: steps.keystore.outputs.present == 'true'
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+          export STORE_FILE="$RUNNER_TEMP/play-upload.keystore"
+          python3 - <<'PY'
+          import base64, os, pathlib
+          pathlib.Path(os.environ["STORE_FILE"]).write_bytes(
+              base64.b64decode(os.environ["ANDROID_KEYSTORE_BASE64"])
+          )
+          PY
+          SDK="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-/usr/local/lib/android/sdk}}"
+          echo "sdk.dir=$SDK" > native/android/local.properties
+          KEY_PASSWORD="${ANDROID_KEY_PASSWORD:-$ANDROID_KEYSTORE_PASSWORD}"
+          chmod +x native/android/gradlew
+          ROOMRESCUE_RELEASE_STORE_FILE="$STORE_FILE" \
+          ROOMRESCUE_RELEASE_STORE_PASSWORD="$ANDROID_KEYSTORE_PASSWORD" \
+          ROOMRESCUE_RELEASE_KEY_ALIAS="$ANDROID_KEY_ALIAS" \
+          ROOMRESCUE_RELEASE_KEY_PASSWORD="$KEY_PASSWORD" \
+            native/android/gradlew -p native/android :app:bundleRelease --no-daemon --stacktrace
+          rm -f "$STORE_FILE"
+          test -f native/android/app/build/outputs/bundle/release/app-release.aab
+
+      - name: Upload AAB artifact
+        if: steps.keystore.outputs.present == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-aab
+          path: native/android/app/build/outputs/bundle/release/app-release.aab
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Record AAB success
+        if: steps.keystore.outputs.present == 'true'
+        run: |
+          {
+            echo "## Android AAB produced"
+            echo
+            echo "Play upload artifact attached. The app is **not submitted** to Play."
+          } >> "$GITHUB_STEP_SUMMARY"

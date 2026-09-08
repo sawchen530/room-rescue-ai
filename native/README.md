@@ -7,8 +7,9 @@ Full instructions: [../README.md](../README.md) (web vs native) and [../STORE.md
 ```bash
 npm install
 npx cap sync
-npx cap open ios       # Mac + Xcode
-npx cap open android   # Android Studio
+npx cap open ios       # optional local Xcode
+npx cap open android   # optional Android Studio
+# iOS archive: GitHub Actions macos-latest (STORE.md). No personal Mac required.
 ```
 
 Point at local uvicorn:
