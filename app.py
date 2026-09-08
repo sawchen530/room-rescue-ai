@@ -1,29 +1,89 @@
 import base64
 import json
+import logging
 import os
 import re
-from typing import List, Literal
+from pathlib import Path
+from typing import List, Literal, Optional
 
 from dotenv import load_dotenv
-from fastapi import FastAPI, File, Form, HTTPException, UploadFile
-from fastapi.responses import FileResponse
+from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile
+from fastapi.responses import FileResponse, JSONResponse, PlainTextResponse, Response
 from fastapi.staticfiles import StaticFiles
 from openai import OpenAI
 from pydantic import BaseModel, Field
 
 load_dotenv()
 
-app = FastAPI(title="Room Rescue AI")
-app.mount("/static", StaticFiles(directory="static"), name="static")
+logger = logging.getLogger("room_rescue")
+if not logging.getLogger().handlers:
+    logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(message)s")
 
+PUBLIC_BASE_URL = os.getenv(
+    "PUBLIC_BASE_URL",
+    "https://room-rescue-ai-production.up.railway.app",
+).rstrip("/")
+DEFAULT_VISION_MODEL = "gpt-4o"
 MAX_IMAGE_BYTES = 12 * 1024 * 1024
+MAX_REQUEST_BYTES = 28 * 1024 * 1024
+OPENAI_TIMEOUT_SECONDS = float(os.getenv("OPENAI_TIMEOUT_SECONDS", "90"))
+ENABLE_DOCS = os.getenv("ENABLE_DOCS", "").strip().lower() in {"1", "true", "yes", "on"}
+
 ALLOWED_TYPES = {"image/jpeg", "image/png", "image/webp", "image/heic", "image/heif"}
+GENERIC_TYPES = {"", "application/octet-stream", "binary/octet-stream", "application/x-www-form-urlencoded"}
+TYPE_ALIASES = {
+    "image/jpg": "image/jpeg",
+    "image/pjpeg": "image/jpeg",
+    "image/x-png": "image/png",
+}
+EXT_TO_TYPE = {
+    ".jpg": "image/jpeg",
+    ".jpeg": "image/jpeg",
+    ".png": "image/png",
+    ".webp": "image/webp",
+    ".heic": "image/heic",
+    ".heif": "image/heif",
+}
+HEIF_BRANDS = {
+    b"heic",
+    b"heix",
+    b"hevc",
+    b"hevx",
+    b"heim",
+    b"heis",
+    b"hevm",
+    b"hevs",
+    b"mif1",
+    b"msf1",
+    b"heif",
+}
 STATUS_ORDER = {
     "Not Done": 0,
     "Need Better Photo": 1,
     "Partially Done": 2,
     "Completed": 3,
 }
+
+ANALYZE_FAILED_MESSAGE = "We couldn’t build a checklist from that photo. Please try again in a moment."
+COMPARE_FAILED_MESSAGE = "We couldn’t compare those photos. Please try again in a moment."
+TIMEOUT_MESSAGE = "The photo check took too long. Try again with a smaller or clearer photo."
+CONFIG_MESSAGE = "Room Rescue isn’t ready to analyze photos right now. Please try again later."
+UNSUPPORTED_IMAGE_MESSAGE = "Please upload a JPG, PNG, WebP, HEIC, or HEIF image."
+TOO_LARGE_MESSAGE = "That photo is too large. Please use one under 12 MB."
+REQUEST_TOO_LARGE_MESSAGE = "That upload is too large. Please use photos under 12 MB each."
+
+
+def _docs_url(path: str) -> Optional[str]:
+    return path if ENABLE_DOCS else None
+
+
+app = FastAPI(
+    title="Room Rescue",
+    docs_url=_docs_url("/docs"),
+    redoc_url=_docs_url("/redoc"),
+    openapi_url=_docs_url("/openapi.json"),
+)
+app.mount("/static", StaticFiles(directory="static"), name="static")
 
 
 class Task(BaseModel):
@@ -85,9 +145,38 @@ class ComparisonResult(BaseModel):
     should_retake: bool
 
 
+def _html(path: str, cache_control: str = "no-cache") -> FileResponse:
+    return FileResponse(path, media_type="text/html; charset=utf-8", headers={"Cache-Control": cache_control})
+
+
+@app.middleware("http")
+async def add_static_cache_headers(request: Request, call_next):
+    response = await call_next(request)
+    path = request.url.path
+    if response.status_code == 200 and path.startswith("/static/"):
+        if path.endswith((".html", ".webmanifest", ".json")):
+            response.headers.setdefault("Cache-Control", "public, max-age=300")
+        else:
+            response.headers.setdefault("Cache-Control", "public, max-age=86400")
+    return response
+
+
+@app.middleware("http")
+async def limit_request_size(request: Request, call_next):
+    content_length = request.headers.get("content-length")
+    if content_length and content_length.isdigit() and int(content_length) > MAX_REQUEST_BYTES:
+        return JSONResponse({"detail": REQUEST_TOO_LARGE_MESSAGE}, status_code=413)
+    return await call_next(request)
+
+
 @app.get("/")
 def home():
-    return FileResponse("static/index.html")
+    return _html("static/index.html")
+
+
+@app.get("/privacy")
+def privacy():
+    return _html("static/privacy.html")
 
 
 @app.get("/health")
@@ -95,19 +184,101 @@ def health():
     return {"status": "ok"}
 
 
+@app.get("/robots.txt", response_class=PlainTextResponse)
+def robots():
+    body = (
+        "User-agent: *\n"
+        "Allow: /\n"
+        "Disallow: /api/\n"
+        "Disallow: /docs\n"
+        "Disallow: /redoc\n"
+        "Disallow: /openapi.json\n"
+        f"Sitemap: {PUBLIC_BASE_URL}/sitemap.xml\n"
+    )
+    return PlainTextResponse(body, headers={"Cache-Control": "public, max-age=86400"})
+
+
+@app.get("/sitemap.xml")
+def sitemap():
+    body = (
+        '<?xml version="1.0" encoding="UTF-8"?>\n'
+        '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
+        f"  <url><loc>{PUBLIC_BASE_URL}/</loc></url>\n"
+        f"  <url><loc>{PUBLIC_BASE_URL}/privacy</loc></url>\n"
+        "</urlset>\n"
+    )
+    return Response(content=body, media_type="application/xml", headers={"Cache-Control": "public, max-age=86400"})
+
+
+@app.get("/manifest.webmanifest")
+def manifest():
+    return FileResponse(
+        "static/manifest.webmanifest",
+        media_type="application/manifest+json",
+        headers={"Cache-Control": "public, max-age=300"},
+    )
+
+
+@app.get("/sw.js")
+def service_worker():
+    return FileResponse(
+        "static/sw.js",
+        media_type="application/javascript",
+        headers={"Cache-Control": "no-cache"},
+    )
+
+
+@app.get("/favicon.svg")
+def favicon_svg():
+    return FileResponse("static/favicon.svg", media_type="image/svg+xml")
+
+
+@app.get("/apple-touch-icon.png")
+def apple_touch_icon():
+    return FileResponse("static/apple-touch-icon.png", media_type="image/png")
+
+
 def get_client() -> OpenAI:
     api_key = os.getenv("OPENAI_API_KEY")
     if not api_key:
-        raise HTTPException(status_code=500, detail="OPENAI_API_KEY is not configured on the server.")
-    return OpenAI(api_key=api_key)
+        logger.error("OPENAI_API_KEY is not configured")
+        raise HTTPException(status_code=500, detail=CONFIG_MESSAGE)
+    return OpenAI(api_key=api_key, timeout=OPENAI_TIMEOUT_SECONDS)
 
 
-def validate_image_upload(image: UploadFile) -> None:
-    if image.content_type not in ALLOWED_TYPES:
-        raise HTTPException(
-            status_code=415,
-            detail="Please upload a JPG, PNG, WebP, HEIC, or HEIF image.",
-        )
+def _declared_media_type(content_type: Optional[str]) -> str:
+    return (content_type or "").split(";")[0].strip().lower()
+
+
+def sniff_magic(raw: bytes) -> Optional[str]:
+    if len(raw) >= 3 and raw[:3] == b"\xff\xd8\xff":
+        return "image/jpeg"
+    if raw.startswith(b"\x89PNG\r\n\x1a\n"):
+        return "image/png"
+    if len(raw) >= 12 and raw[:4] == b"RIFF" and raw[8:12] == b"WEBP":
+        return "image/webp"
+    if len(raw) >= 12 and raw[4:8] == b"ftyp":
+        brand = raw[8:12]
+        compatible = {raw[i : i + 4] for i in range(8, len(raw) - 3, 4) if i < 96}
+        if brand in HEIF_BRANDS or compatible & HEIF_BRANDS:
+            return "image/heic" if brand in {b"heic", b"heix", b"hevc", b"hevx"} or b"heic" in compatible else "image/heif"
+    return None
+
+
+def sniff_image_media_type(filename: Optional[str], content_type: Optional[str], raw: bytes) -> str:
+    magic = sniff_magic(raw)
+    if magic:
+        return magic
+
+    declared = TYPE_ALIASES.get(_declared_media_type(content_type), _declared_media_type(content_type))
+    if declared in ALLOWED_TYPES:
+        return declared
+
+    extension = Path(filename or "").suffix.lower()
+    if extension in EXT_TO_TYPE:
+        return EXT_TO_TYPE[extension]
+
+    raise HTTPException(status_code=415, detail=UNSUPPORTED_IMAGE_MESSAGE)
 
 
 def extract_json(text: str) -> dict:
@@ -122,14 +293,19 @@ def extract_json(text: str) -> dict:
 
 
 async def upload_to_data_url(image: UploadFile) -> str:
-    validate_image_upload(image)
     raw = await image.read()
     if not raw:
         raise HTTPException(status_code=400, detail="The uploaded image is empty.")
     if len(raw) > MAX_IMAGE_BYTES:
-        raise HTTPException(status_code=413, detail="Image is too large. Maximum size is 12 MB.")
+        raise HTTPException(status_code=413, detail=TOO_LARGE_MESSAGE)
+    media_type = sniff_image_media_type(image.filename, image.content_type, raw)
     b64 = base64.b64encode(raw).decode("ascii")
-    return f"data:{image.content_type};base64,{b64}"
+    return f"data:{media_type};base64,{b64}"
+
+
+def _is_timeout_error(exc: Exception) -> bool:
+    name = type(exc).__name__.lower()
+    return "timeout" in name or "timed out" in str(exc).lower()
 
 
 def call_json_model(prompt: str, image_urls: List[str]) -> dict:
@@ -139,7 +315,7 @@ def call_json_model(prompt: str, image_urls: List[str]) -> dict:
         content.append({"type": "input_image", "image_url": image_url})
 
     response = client.responses.create(
-        model=os.getenv("OPENAI_VISION_MODEL", "gpt-5.6-luna"),
+        model=os.getenv("OPENAI_VISION_MODEL", DEFAULT_VISION_MODEL),
         input=[{"role": "user", "content": content}],
     )
     return extract_json(response.output_text)
@@ -208,7 +384,11 @@ Return ONLY JSON matching this exact shape:
     except HTTPException:
         raise
     except Exception as exc:
-        raise HTTPException(status_code=502, detail=f"AI analysis failed: {exc}")
+        logger.exception("AI analysis failed")
+        raise HTTPException(
+            status_code=502,
+            detail=TIMEOUT_MESSAGE if _is_timeout_error(exc) else ANALYZE_FAILED_MESSAGE,
+        )
 
     rank = {"High": 0, "Medium": 1, "Low": 2}
     analysis.tasks.sort(key=lambda t: rank[t.priority])
@@ -226,8 +406,12 @@ async def compare_room_progress(
     try:
         parsed_tasks = json.loads(tasks_json)
         original_tasks = [Task.model_validate(item) for item in parsed_tasks]
-    except Exception as exc:
-        raise HTTPException(status_code=400, detail=f"Could not read original tasks: {exc}")
+    except Exception:
+        logger.exception("Could not parse original tasks")
+        raise HTTPException(
+            status_code=400,
+            detail="Could not read the original checklist. Make a new checklist and try again.",
+        )
 
     if not original_tasks:
         raise HTTPException(status_code=400, detail="No original tasks were provided for comparison.")
@@ -287,7 +471,11 @@ Return ONLY JSON matching this exact shape:
     except HTTPException:
         raise
     except Exception as exc:
-        raise HTTPException(status_code=502, detail=f"AI comparison failed: {exc}")
+        logger.exception("AI comparison failed")
+        raise HTTPException(
+            status_code=502,
+            detail=TIMEOUT_MESSAGE if _is_timeout_error(exc) else COMPARE_FAILED_MESSAGE,
+        )
 
     normalized = {}
     for item in draft.task_results:

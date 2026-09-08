@@ -5,6 +5,7 @@
   const afterPhoto = $("afterPhoto");
   const analyzeBtn = $("analyze");
   const compareBtn = $("compare");
+  const REQUEST_TIMEOUT_MS = 95000;
 
   const ANALYZE_STEPS = [
     "Looking at the photo…",
@@ -88,24 +89,121 @@
     }[ch]));
   }
 
-  function setError(id, message) {
-    const el = $(id);
+  function setError(boxId, textId, message) {
+    const box = $(boxId);
+    const el = $(textId);
     if (!message) {
-      el.hidden = true;
+      box.hidden = true;
       el.textContent = "";
       return;
     }
-    el.hidden = false;
+    box.hidden = false;
     el.textContent = message;
   }
 
-  function showPhoto(input, chosenId, dropId, nameId, previewId) {
+  function friendlyStatusMessage(status, detail) {
+    if (status === 413) return detail || "That photo is too large. Please use one under 12 MB.";
+    if (status === 415) return detail || "Please use a JPG, PNG, WebP, or HEIC photo.";
+    if (status === 408 || status === 504) return detail || "The photo check took too long. Please try again.";
+    if (status === 502 || status === 503) {
+      return detail || "The photo check is temporarily unavailable. Please try again in a moment.";
+    }
+    if (status >= 500) return detail || "Something went wrong on our side. Please try again.";
+    return detail || "Something went wrong. Please try again.";
+  }
+
+  function friendlyNetworkError(error) {
+    if (error?.name === "AbortError") {
+      return "The photo check took too long. Please try again.";
+    }
+    if (error?.name === "TypeError" || /failed to fetch|networkerror|load failed/i.test(error?.message || "")) {
+      return "We couldn’t reach Room Rescue. Check your connection and try again.";
+    }
+    return error?.message || "Something went wrong. Please try again.";
+  }
+
+  async function postForm(url, body) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+    try {
+      const response = await fetch(url, { method: "POST", body, signal: controller.signal });
+      const raw = await response.text();
+      let data = {};
+      if (raw) {
+        try {
+          data = JSON.parse(raw);
+        } catch {
+          if (!response.ok) throw new Error(friendlyStatusMessage(response.status));
+          throw new Error("The server sent an unexpected response. Please try again.");
+        }
+      }
+      if (!response.ok) {
+        const detail = typeof data.detail === "string" ? data.detail : "";
+        throw new Error(friendlyStatusMessage(response.status, detail));
+      }
+      return data;
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+
+  function bindDropzone(drop, input) {
+    ["dragenter", "dragover"].forEach((type) => {
+      drop.addEventListener(type, (event) => {
+        event.preventDefault();
+        drop.classList.add("is-dragover");
+      });
+    });
+    ["dragleave", "dragend"].forEach((type) => {
+      drop.addEventListener(type, (event) => {
+        event.preventDefault();
+        drop.classList.remove("is-dragover");
+      });
+    });
+    drop.addEventListener("drop", (event) => {
+      event.preventDefault();
+      drop.classList.remove("is-dragover");
+      const file = event.dataTransfer?.files?.[0];
+      if (!file) return;
+      const transfer = new DataTransfer();
+      transfer.items.add(file);
+      input.files = transfer.files;
+      input.dispatchEvent(new Event("change", { bubbles: true }));
+    });
+    drop.addEventListener("keydown", (event) => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        input.click();
+      }
+    });
+  }
+
+  function showPhoto(input, chosenId, dropId, nameId, previewId, fallbackId, noteId, readyNote) {
     const file = input.files?.[0];
     if (!file) return;
     const preview = $(previewId);
+    const fallback = $(fallbackId);
+    const note = $(noteId);
     if (preview.src) URL.revokeObjectURL(preview.src);
-    preview.src = URL.createObjectURL(file);
-    $(nameId).textContent = file.name;
+    preview.hidden = true;
+    fallback.hidden = true;
+    fallback.textContent = /\.hei[cf]$/i.test(file.name) ? "HEIC" : "Photo";
+
+    const objectUrl = URL.createObjectURL(file);
+    preview.onload = () => {
+      preview.hidden = false;
+      fallback.hidden = true;
+      note.textContent = readyNote;
+    };
+    preview.onerror = () => {
+      URL.revokeObjectURL(objectUrl);
+      preview.removeAttribute("src");
+      preview.hidden = true;
+      fallback.hidden = false;
+      note.textContent = "This phone format may not preview here, but we can still analyze it.";
+    };
+    preview.src = objectUrl;
+    $(nameId).textContent = file.name || "Photo selected";
     $(dropId).hidden = true;
     $(chosenId).hidden = false;
   }
@@ -158,6 +256,7 @@
   function renderTasks() {
     const root = $("tasks");
     root.innerHTML = "";
+    $("emptyTasks").hidden = taskState.length > 0;
     taskState.forEach((task, index) => {
       const row = document.createElement("article");
       row.className = "task" + (task.done ? " done" : "");
@@ -199,23 +298,110 @@
     return "Just started";
   }
 
-  beforePhoto.addEventListener("change", () => {
-    showPhoto(beforePhoto, "beforeChosen", "beforeDrop", "beforeFileName", "beforePreview");
+  function checklistMarkdown() {
+    if (!analysisData) return "";
+    const lines = [
+      `# ${analysisData.room_type || "Room"} checklist`,
+      "",
+      analysisData.summary || "",
+      "",
+      `About ${analysisData.estimated_total_minutes} minutes · ${taskState.length} tasks`,
+      "",
+    ];
+    if (analysisData.cautions?.length) {
+      lines.push("## Before you start", "");
+      analysisData.cautions.forEach((item) => lines.push(`- ${item}`));
+      lines.push("");
+    }
+    lines.push("## Tasks", "");
+    taskState.forEach((task) => {
+      const mark = task.done ? "x" : " ";
+      lines.push(`- [${mark}] ${task.title}`);
+      lines.push(`  ${task.priority} · ${task.category} · ${task.minutes} min${task.diy_level ? ` · ${task.diy_level}` : ""}`);
+      if (task.reason) lines.push(`  ${task.reason}`);
+      if (task.supplies?.length) lines.push(`  Need: ${task.supplies.join(", ")}`);
+      if (task.compare) {
+        lines.push(`  Photo check: ${task.compare.status} — ${task.compare.evidence}`);
+        if (task.compare.status !== "Completed") lines.push(`  Next: ${task.compare.next_step}`);
+      }
+      lines.push("");
+    });
+    lines.push("_Saved from Room Rescue. Photos aren’t kept on our servers._", "");
+    return lines.join("\n");
+  }
+
+  function saveChecklist() {
+    if (!analysisData) return;
+    const blob = new Blob([checklistMarkdown()], { type: "text/markdown;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    const slug = String(analysisData.room_type || "room").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "room";
+    link.href = url;
+    link.download = `${slug}-checklist.md`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+  }
+
+  function resetRoom() {
+    analysisData = null;
+    taskState = [];
+    $("startPanel").classList.remove("has-plan");
+    $("startHeading").textContent = "Start with a photo";
+    $("results").hidden = true;
+    $("afterSection").hidden = true;
+    $("comparison").hidden = true;
+    $("finishedNote").hidden = true;
+    delete $("finishedNote").dataset.counted;
+    $("emptyTasks").hidden = true;
+    $("tasks").innerHTML = "";
+    compareBtn.disabled = true;
+    $("photo").scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
+  function syncButtons() {
     analyzeBtn.disabled = !beforePhoto.files?.[0];
     compareBtn.disabled = !(afterPhoto.files?.[0] && analysisData && beforePhoto.files?.[0]);
+  }
+
+  bindDropzone($("beforeDrop"), beforePhoto);
+  bindDropzone($("afterDrop"), afterPhoto);
+
+  beforePhoto.addEventListener("change", () => {
+    showPhoto(
+      beforePhoto,
+      "beforeChosen",
+      "beforeDrop",
+      "beforeFileName",
+      "beforePreview",
+      "beforeFallback",
+      "beforePhotoNote",
+      "Use the same angle later for a progress check."
+    );
+    syncButtons();
   });
 
   afterPhoto.addEventListener("change", () => {
-    showPhoto(afterPhoto, "afterChosen", "afterDrop", "afterFileName", "afterPreview");
-    compareBtn.disabled = !(afterPhoto.files?.[0] && analysisData && beforePhoto.files?.[0]);
+    showPhoto(
+      afterPhoto,
+      "afterChosen",
+      "afterDrop",
+      "afterFileName",
+      "afterPreview",
+      "afterFallback",
+      "afterPhotoNote",
+      "Hidden areas stay open until a later photo."
+    );
+    syncButtons();
   });
 
-  analyzeBtn.addEventListener("click", async () => {
+  async function runAnalyze() {
     const file = beforePhoto.files?.[0];
     if (!file) return;
 
     analyzeBtn.disabled = true;
-    setError("analyzeError", "");
+    setError("analyzeErrorBox", "analyzeError", "");
     $("analyzeWait").hidden = false;
     analyzeWait.start();
 
@@ -225,15 +411,12 @@
     body.append("time_budget", $("budget").value);
 
     try {
-      const response = await fetch("/api/analyze", { method: "POST", body });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.detail || "Could not build a checklist from that photo.");
-
+      const data = await postForm("/api/analyze", body);
       analysisData = data;
-      taskState = data.tasks.map((task) => ({ ...task, done: false, compare: null }));
+      taskState = (data.tasks || []).map((task) => ({ ...task, done: false, compare: null }));
       $("roomTitle").textContent = data.room_type;
       $("summary").textContent = data.summary;
-      $("planMeta").textContent = `${data.tasks.length} tasks · about ${data.estimated_total_minutes} min`;
+      $("planMeta").textContent = `${taskState.length} tasks · about ${data.estimated_total_minutes} min`;
       $("cautions").innerHTML = data.cautions?.length
         ? `<div class="caution"><b>Before you start</b>${data.cautions.map((item) => `<p>${esc(item)}</p>`).join("")}</div>`
         : "";
@@ -243,24 +426,23 @@
       $("results").hidden = false;
       $("afterSection").hidden = false;
       $("comparison").hidden = true;
-      compareBtn.disabled = !afterPhoto.files?.[0];
       $("results").scrollIntoView({ behavior: "smooth", block: "start" });
     } catch (error) {
-      setError("analyzeError", error.message || "Analysis failed.");
+      setError("analyzeErrorBox", "analyzeError", friendlyNetworkError(error));
     } finally {
       analyzeWait.stop();
       $("analyzeWait").hidden = true;
-      analyzeBtn.disabled = !beforePhoto.files?.[0];
+      syncButtons();
     }
-  });
+  }
 
-  compareBtn.addEventListener("click", async () => {
+  async function runCompare() {
     const before = beforePhoto.files?.[0];
     const after = afterPhoto.files?.[0];
     if (!before || !after || !analysisData) return;
 
     compareBtn.disabled = true;
-    setError("compareError", "");
+    setError("compareErrorBox", "compareError", "");
     $("compareWait").hidden = false;
     compareWait.start();
 
@@ -271,10 +453,7 @@
     body.append("tasks_json", JSON.stringify(analysisData.tasks));
 
     try {
-      const response = await fetch("/api/compare", { method: "POST", body });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.detail || "Could not compare those photos.");
-
+      const data = await postForm("/api/compare", body);
       const byTitle = new Map(data.task_results.map((item) => [item.title.trim().toLowerCase(), item]));
       let newlyVerified = 0;
       taskState = taskState.map((task) => {
@@ -314,13 +493,29 @@
       $("finishedNote").hidden = !finished;
       $("comparison").scrollIntoView({ behavior: "smooth", block: "start" });
     } catch (error) {
-      setError("compareError", error.message || "Comparison failed.");
+      setError("compareErrorBox", "compareError", friendlyNetworkError(error));
     } finally {
       compareWait.stop();
       $("compareWait").hidden = true;
-      compareBtn.disabled = !(afterPhoto.files?.[0] && analysisData && beforePhoto.files?.[0]);
+      syncButtons();
     }
-  });
+  }
+
+  analyzeBtn.addEventListener("click", runAnalyze);
+  compareBtn.addEventListener("click", runCompare);
+  $("analyzeRetry").addEventListener("click", runAnalyze);
+  $("compareRetry").addEventListener("click", runCompare);
+  $("saveChecklist").addEventListener("click", saveChecklist);
+  $("printChecklist").addEventListener("click", () => window.print());
+  $("newRoom").addEventListener("click", resetRoom);
+
+  if ("serviceWorker" in navigator) {
+    window.addEventListener("load", () => {
+      navigator.serviceWorker.register("/sw.js").catch(() => {
+        /* installability is optional */
+      });
+    });
+  }
 
   renderWorkSummary();
 })();

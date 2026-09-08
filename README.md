@@ -1,12 +1,51 @@
-# Room Rescue AI
+# Room Rescue
 
-Mobile-friendly room photo analysis app. Upload or take a photo of a room and receive AI-generated cleaning, repair, organization, safety, and inspection tasks.
+Photograph a room. Get a practical checklist for what to clean, fix, organize, or inspect — then verify the work with an after photo.
+
+Live: [https://room-rescue-ai-production.up.railway.app](https://room-rescue-ai-production.up.railway.app)
+
+Built for DIY homeowners. No account, no payments, no photo library.
+
+## How it works
+
+1. Take a before photo from an angle you can repeat.
+2. Room Rescue lists what’s actually visible, with time and ordinary supplies.
+3. Take an after photo from the same spot to check what’s done.
+
+Photos are sent to our server in memory, then to OpenAI’s vision API for analysis. We do not store photos as a product feature. Checkmarks and a light progress summary stay in this browser’s local storage.
+
+## Run locally
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+export OPENAI_API_KEY=sk-your-key
+uvicorn app:app --reload --host 0.0.0.0 --port 8000
+```
+
+Open [http://127.0.0.1:8000](http://127.0.0.1:8000).
 
 ## Environment variables
 
-- `OPENAI_API_KEY` — required
-- `OPENAI_VISION_MODEL` — optional, defaults to `gpt-5.6-luna`
+| Variable | Required | Default | Notes |
+| --- | --- | --- | --- |
+| `OPENAI_API_KEY` | Yes | — | OpenAI API key used for vision analysis |
+| `OPENAI_VISION_MODEL` | No | `gpt-4o` | Must be a vision-capable model |
+| `OPENAI_TIMEOUT_SECONDS` | No | `90` | How long to wait on the vision API |
+| `ENABLE_DOCS` | No | off | Set `1` / `true` to expose `/docs`, `/redoc`, and `/openapi.json` |
+| `PUBLIC_BASE_URL` | No | the Railway URL above | Canonical site URL for sitemap / robots |
 
-## Railway start command
+## Railway
 
-`uvicorn app:app --host 0.0.0.0 --port $PORT`
+Start command:
+
+```text
+uvicorn app:app --host 0.0.0.0 --port $PORT
+```
+
+Set `OPENAI_API_KEY` in Railway variables. Leave `ENABLE_DOCS` unset on the public deploy.
+
+## Privacy
+
+Plain-English notes live at `/privacy`.
